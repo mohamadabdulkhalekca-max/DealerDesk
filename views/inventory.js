@@ -79,7 +79,7 @@
     actions.appendChild(saveBtn);
     form.appendChild(actions);
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.classList.add('hidden');
       const data = car ? { ...car } : {};
@@ -96,11 +96,14 @@
         data[field.key] = value;
       }
       if (!data.status) data.status = 'in_stock';
+
+      saveBtn.disabled = true;
       try {
-        Storage.saveCar(data);
+        await Storage.saveCar(data);
       } catch (err) {
         errorMsg.textContent = err.message;
         errorMsg.classList.remove('hidden');
+        saveBtn.disabled = false;
         return;
       }
       dialog.close();
@@ -114,10 +117,11 @@
     dialog.showModal();
   }
 
-  function render(root) {
+  async function render(root) {
     const state = { filter: 'all', search: '' };
+    let allCars = [];
 
-    root.innerHTML = '';
+    root.innerHTML = '<div class="page-loading">Loading…</div>';
     const wrap = document.createElement('div');
     wrap.className = 'page';
 
@@ -129,7 +133,7 @@
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
     addBtn.textContent = '+ Add Car';
-    addBtn.addEventListener('click', () => openCarDialog(null, renderTable));
+    addBtn.addEventListener('click', () => openCarDialog(null, reload));
     header.appendChild(addBtn);
     wrap.appendChild(header);
 
@@ -140,7 +144,7 @@
     searchInput.placeholder = 'Search make, model, VIN…';
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value.trim();
-      renderTable();
+      renderRows();
     });
     controls.appendChild(searchInput);
 
@@ -158,7 +162,7 @@
     });
     filterSelect.addEventListener('change', () => {
       state.filter = filterSelect.value;
-      renderTable();
+      renderRows();
     });
     controls.appendChild(filterSelect);
     wrap.appendChild(controls);
@@ -180,10 +184,8 @@
     const emptyWrap = document.createElement('div');
     wrap.appendChild(emptyWrap);
 
-    root.appendChild(wrap);
-
-    function renderTable() {
-      const cars = Storage.getCars().filter((c) => {
+    function applyFilters() {
+      return allCars.filter((c) => {
         if (state.filter !== 'all' && c.status !== state.filter) return false;
         if (state.search) {
           const q = state.search.toLowerCase();
@@ -192,13 +194,17 @@
         }
         return true;
       });
+    }
+
+    function renderRows() {
+      const cars = applyFilters();
 
       emptyWrap.innerHTML = '';
       if (cars.length === 0) {
         tableWrap.classList.add('hidden');
         emptyWrap.appendChild(
           Helpers.emptyState(
-            Storage.getCars().length === 0
+            allCars.length === 0
               ? 'No cars yet — add your first one.'
               : 'No cars match your search/filter.'
           )
@@ -222,15 +228,15 @@
         const actionsCell = tr.querySelector('.row-actions');
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
-        editBtn.addEventListener('click', () => openCarDialog(c, renderTable));
+        editBtn.addEventListener('click', () => openCarDialog(c, reload));
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'danger';
         deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => {
+        deleteBtn.addEventListener('click', async () => {
           if (!confirm(`Delete ${c.year} ${c.make} ${c.model}?`)) return;
           try {
-            Storage.deleteCar(c.id);
-            renderTable();
+            await Storage.deleteCar(c.id);
+            await reload();
           } catch (err) {
             App.showError(err.message);
           }
@@ -241,7 +247,18 @@
       });
     }
 
-    renderTable();
+    async function reload() {
+      try {
+        allCars = await Storage.getCars();
+        renderRows();
+      } catch (err) {
+        App.showError(err.message);
+      }
+    }
+
+    root.innerHTML = '';
+    root.appendChild(wrap);
+    await reload();
   }
 
   window.Views = window.Views || {};

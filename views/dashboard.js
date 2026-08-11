@@ -7,9 +7,10 @@
     return div;
   }
 
-  function render(root) {
-    const cars = Storage.getCars();
-    const sales = Storage.getSales();
+  async function render(root) {
+    root.innerHTML = '<div class="page-loading">Loading…</div>';
+
+    const [cars, sales] = await Promise.all([Storage.getCars(), Storage.getSales()]);
 
     const inStock = cars.filter((c) => c.status === 'in_stock');
     const inventoryValue = inStock.reduce((sum, c) => sum + Number(c.purchasePrice || 0), 0);

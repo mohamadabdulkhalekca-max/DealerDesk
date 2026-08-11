@@ -1,134 +1,143 @@
 /**
- * Data layer. Every read/write to persisted data goes through here.
- * Backed by localStorage today; swap the internals for fetch() calls
- * later without changing any calling code.
+ * Data layer. Every read/write to persisted data goes through here,
+ * backed by Supabase (Postgres). Callers use camelCase field names;
+ * this module maps to/from the database's snake_case columns so the
+ * rest of the app never deals with that translation.
  */
 (function () {
-  const KEYS = {
-    cars: 'ct_cars',
-    sales: 'ct_sales',
-    settings: 'ct_settings',
-  };
+  const db = window.SupabaseClient;
 
-  function readList(key) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      throw new Error(`Could not read data (${key}): ${err.message}`);
-    }
+  function carFromRow(row) {
+    return {
+      id: row.id,
+      make: row.make,
+      model: row.model,
+      year: row.year,
+      vin: row.vin,
+      color: row.color,
+      mileage: row.mileage,
+      purchasePrice: row.purchase_price,
+      purchaseDate: row.purchase_date,
+      status: row.status,
+      notes: row.notes,
+    };
   }
 
-  function writeList(key, list) {
-    try {
-      localStorage.setItem(key, JSON.stringify(list));
-    } catch (err) {
-      throw new Error(`Could not save data (${key}): ${err.message}`);
-    }
+  function carToRow(car) {
+    const row = {};
+    if (car.make !== undefined) row.make = car.make;
+    if (car.model !== undefined) row.model = car.model;
+    if (car.year !== undefined) row.year = car.year;
+    if (car.vin !== undefined) row.vin = car.vin || null;
+    if (car.color !== undefined) row.color = car.color || null;
+    if (car.mileage !== undefined) row.mileage = car.mileage === '' ? null : car.mileage;
+    if (car.purchasePrice !== undefined) row.purchase_price = car.purchasePrice;
+    if (car.purchaseDate !== undefined) row.purchase_date = car.purchaseDate || null;
+    if (car.status !== undefined) row.status = car.status;
+    if (car.notes !== undefined) row.notes = car.notes || null;
+    return row;
   }
 
-  function generateId() {
-    return crypto.randomUUID
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  function saleFromRow(row) {
+    return {
+      id: row.id,
+      carId: row.car_id,
+      buyerName: row.buyer_name,
+      buyerContact: row.buyer_contact,
+      salePrice: row.sale_price,
+      saleDate: row.sale_date,
+      paymentStatus: row.payment_status,
+      notes: row.notes,
+    };
+  }
+
+  function saleToRow(sale) {
+    const row = {};
+    if (sale.carId !== undefined) row.car_id = sale.carId;
+    if (sale.buyerName !== undefined) row.buyer_name = sale.buyerName;
+    if (sale.buyerContact !== undefined) row.buyer_contact = sale.buyerContact || null;
+    if (sale.salePrice !== undefined) row.sale_price = sale.salePrice;
+    if (sale.saleDate !== undefined) row.sale_date = sale.saleDate || null;
+    if (sale.paymentStatus !== undefined) row.payment_status = sale.paymentStatus;
+    if (sale.notes !== undefined) row.notes = sale.notes || null;
+    return row;
+  }
+
+  function friendlyError(error, deleteBlockedMessage) {
+    if (deleteBlockedMessage && error.code === '23503') {
+      return new Error(deleteBlockedMessage);
+    }
+    return new Error(error.message);
   }
 
   // --- Cars ---
 
-  function getCars() {
-    return readList(KEYS.cars);
+  async function getCars() {
+    const { data, error } = await db.from('cars').select('*').order('created_at', { ascending: false });
+    if (error) throw friendlyError(error);
+    return data.map(carFromRow);
   }
 
-  function getCar(id) {
-    return getCars().find((c) => c.id === id) || null;
+  async function getCar(id) {
+    const { data, error } = await db.from('cars').select('*').eq('id', id).maybeSingle();
+    if (error) throw friendlyError(error);
+    return data ? carFromRow(data) : null;
   }
 
-  function saveCar(car) {
-    const cars = getCars();
-    let saved;
+  async function saveCar(car) {
+    const row = carToRow(car);
     if (car.id) {
-      const idx = cars.findIndex((c) => c.id === car.id);
-      if (idx === -1) throw new Error(`Car not found: ${car.id}`);
-      saved = { ...cars[idx], ...car };
-      cars[idx] = saved;
-    } else {
-      saved = { ...car, id: generateId() };
-      cars.push(saved);
+      const { data, error } = await db.from('cars').update(row).eq('id', car.id).select().single();
+      if (error) throw friendlyError(error);
+      return carFromRow(data);
     }
-    writeList(KEYS.cars, cars);
-    return saved;
+    const { data, error } = await db.from('cars').insert(row).select().single();
+    if (error) throw friendlyError(error);
+    return carFromRow(data);
   }
 
-  function deleteCar(id) {
-    const hasSale = getSales().some((s) => s.carId === id);
-    if (hasSale) {
-      throw new Error('This car has a recorded sale — delete the sale first.');
+  async function deleteCar(id) {
+    const { error } = await db.from('cars').delete().eq('id', id);
+    if (error) {
+      throw friendlyError(error, 'This car has a recorded sale — delete the sale first.');
     }
-    writeList(KEYS.cars, getCars().filter((c) => c.id !== id));
   }
 
   // --- Sales ---
 
-  function getSales() {
-    return readList(KEYS.sales);
+  async function getSales() {
+    const { data, error } = await db.from('sales').select('*').order('created_at', { ascending: false });
+    if (error) throw friendlyError(error);
+    return data.map(saleFromRow);
   }
 
-  function getSale(id) {
-    return getSales().find((s) => s.id === id) || null;
+  async function getSale(id) {
+    const { data, error } = await db.from('sales').select('*').eq('id', id).maybeSingle();
+    if (error) throw friendlyError(error);
+    return data ? saleFromRow(data) : null;
   }
 
-  function saveSale(sale) {
-    const sales = getSales();
-    let saved;
+  async function saveSale(sale) {
+    const row = saleToRow(sale);
     if (sale.id) {
-      const idx = sales.findIndex((s) => s.id === sale.id);
-      if (idx === -1) throw new Error(`Sale not found: ${sale.id}`);
-      saved = { ...sales[idx], ...sale };
-      sales[idx] = saved;
-    } else {
-      saved = { ...sale, id: generateId() };
-      sales.push(saved);
-      const car = getCar(saved.carId);
-      if (car) saveCar({ ...car, status: 'sold' });
+      const { data, error } = await db.from('sales').update(row).eq('id', sale.id).select().single();
+      if (error) throw friendlyError(error);
+      return saleFromRow(data);
     }
-    writeList(KEYS.sales, sales);
+    const { data, error } = await db.from('sales').insert(row).select().single();
+    if (error) throw friendlyError(error);
+    const saved = saleFromRow(data);
+    await saveCar({ id: saved.carId, status: 'sold' });
     return saved;
   }
 
-  function deleteSale(id) {
-    writeList(KEYS.sales, getSales().filter((s) => s.id !== id));
-  }
-
-  // --- Settings ---
-
-  function getSettings() {
-    try {
-      const raw = localStorage.getItem(KEYS.settings);
-      return raw ? JSON.parse(raw) : null;
-    } catch (err) {
-      throw new Error(`Could not read settings: ${err.message}`);
-    }
-  }
-
-  function saveSettings(settings) {
-    try {
-      localStorage.setItem(KEYS.settings, JSON.stringify(settings));
-    } catch (err) {
-      throw new Error(`Could not save settings: ${err.message}`);
-    }
-  }
-
-  async function hashPassword(password) {
-    const enc = new TextEncoder().encode(password);
-    const buf = await crypto.subtle.digest('SHA-256', enc);
-    return Array.from(new Uint8Array(buf))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+  async function deleteSale(id) {
+    const { error } = await db.from('sales').delete().eq('id', id);
+    if (error) throw friendlyError(error);
   }
 
   window.Storage = {
     getCars, getCar, saveCar, deleteCar,
     getSales, getSale, saveSale, deleteSale,
-    getSettings, saveSettings, hashPassword,
   };
 })();

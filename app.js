@@ -6,8 +6,6 @@
   const lockBtn = document.getElementById('lock-btn');
   const errorBanner = document.getElementById('error-banner');
 
-  let unlocked = false;
-
   function showError(message) {
     errorBanner.textContent = message;
     errorBanner.classList.remove('hidden');
@@ -38,31 +36,31 @@
     }
   }
 
-  function render(route) {
+  async function render(route) {
     clearError();
     try {
-      if (!unlocked) {
+      const {
+        data: { session },
+      } = await Auth.getSession();
+
+      if (!session) {
         header.classList.add('hidden');
-        Views.login.render(root, {
-          onUnlock: () => {
-            unlocked = true;
-            navigate('dashboard');
-          },
-        });
+        Views.login.render(root, { onUnlock: () => navigate('dashboard') });
         return;
       }
+
       header.classList.remove('hidden');
       setActiveNav(route);
-      if (route === 'inventory') Views.inventory.render(root);
-      else if (route === 'sales') Views.sales.render(root);
-      else Views.dashboard.render(root);
+      if (route === 'inventory') await Views.inventory.render(root);
+      else if (route === 'sales') await Views.sales.render(root);
+      else await Views.dashboard.render(root);
     } catch (err) {
       showError(err.message);
     }
   }
 
-  lockBtn.addEventListener('click', () => {
-    unlocked = false;
+  lockBtn.addEventListener('click', async () => {
+    await Auth.signOut();
     navigate('login');
   });
 

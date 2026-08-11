@@ -5,16 +5,19 @@
     return `${car.year} ${car.make} ${car.model}`;
   }
 
-  function availableCarsFor(sale) {
-    const cars = Storage.getCars();
-    return cars.filter(
-      (c) => c.status !== 'sold' || (sale && sale.carId === c.id)
-    );
+  function availableCarsFor(cars, sale) {
+    return cars.filter((c) => c.status !== 'sold' || (sale && sale.carId === c.id));
   }
 
-  function openSaleDialog(sale, onSaved) {
-    const cars = Storage.getCars();
-    const choices = availableCarsFor(sale);
+  async function openSaleDialog(sale, onSaved) {
+    let cars;
+    try {
+      cars = await Storage.getCars();
+    } catch (err) {
+      App.showError(err.message);
+      return;
+    }
+    const choices = availableCarsFor(cars, sale);
 
     const dialog = document.createElement('dialog');
     dialog.className = 'app-dialog';
@@ -145,7 +148,7 @@
     actions.appendChild(saveBtn);
     form.appendChild(actions);
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.classList.add('hidden');
 
@@ -175,11 +178,13 @@
         notes: notesInput.value.trim(),
       };
 
+      saveBtn.disabled = true;
       try {
-        Storage.saveSale(data);
+        await Storage.saveSale(data);
       } catch (err) {
         errorMsg.textContent = err.message;
         errorMsg.classList.remove('hidden');
+        saveBtn.disabled = false;
         return;
       }
       dialog.close();
@@ -193,8 +198,9 @@
     dialog.showModal();
   }
 
-  function render(root) {
-    root.innerHTML = '';
+  async function render(root) {
+    root.innerHTML = '<div class="page-loading">Loading…</div>';
+
     const wrap = document.createElement('div');
     wrap.className = 'page';
 
@@ -206,7 +212,7 @@
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
     addBtn.textContent = '+ Add Sale';
-    addBtn.addEventListener('click', () => openSaleDialog(null, renderTable));
+    addBtn.addEventListener('click', () => openSaleDialog(null, reload));
     header.appendChild(addBtn);
     wrap.appendChild(header);
 
@@ -227,13 +233,15 @@
     const emptyWrap = document.createElement('div');
     wrap.appendChild(emptyWrap);
 
-    root.appendChild(wrap);
-
-    function renderTable() {
-      const cars = Storage.getCars();
-      const sales = [...Storage.getSales()].sort(
-        (a, b) => new Date(b.saleDate) - new Date(a.saleDate)
-      );
+    async function reload() {
+      let cars, sales;
+      try {
+        [cars, sales] = await Promise.all([Storage.getCars(), Storage.getSales()]);
+      } catch (err) {
+        App.showError(err.message);
+        return;
+      }
+      sales = [...sales].sort((a, b) => new Date(b.saleDate) - new Date(a.saleDate));
 
       emptyWrap.innerHTML = '';
       if (sales.length === 0) {
@@ -259,15 +267,15 @@
         const actionsCell = tr.querySelector('.row-actions');
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
-        editBtn.addEventListener('click', () => openSaleDialog(s, renderTable));
+        editBtn.addEventListener('click', () => openSaleDialog(s, reload));
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'danger';
         deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => {
+        deleteBtn.addEventListener('click', async () => {
           if (!confirm(`Delete this sale to ${s.buyerName}?`)) return;
           try {
-            Storage.deleteSale(s.id);
-            renderTable();
+            await Storage.deleteSale(s.id);
+            await reload();
           } catch (err) {
             App.showError(err.message);
           }
@@ -278,7 +286,9 @@
       });
     }
 
-    renderTable();
+    root.innerHTML = '';
+    root.appendChild(wrap);
+    await reload();
   }
 
   window.Views = window.Views || {};

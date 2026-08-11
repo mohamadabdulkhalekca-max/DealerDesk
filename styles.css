@@ -344,6 +344,32 @@ button.danger:hover {
   font-size: 0.85rem;
 }
 
+.form-info {
+  color: var(--success-text);
+  font-size: 0.85rem;
+}
+
+.login-form .link-btn {
+  margin-top: 0;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.85rem;
+  padding: 0.2rem;
+  text-decoration: underline;
+}
+
+.login-form .link-btn:hover {
+  background: none;
+  color: var(--primary-dark);
+}
+
+.page-loading {
+  color: var(--text-muted);
+  padding: 2rem 0;
+  text-align: center;
+}
+
 .app-dialog {
   border: none;
   border-radius: var(--radius);
