@@ -2,11 +2,10 @@
 (function () {
   function formatCurrency(amount) {
     const n = Number(amount) || 0;
-    return n.toLocaleString(undefined, {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
-    });
+    // Manual "$" prefix instead of Intl's currency style — some locales
+    // render that as "USD 2,500" or "US$2,500" instead of plain "$2,500".
+    const sign = n < 0 ? '-' : '';
+    return `${sign}$${Math.round(Math.abs(n)).toLocaleString(undefined)}`;
   }
 
   function escapeHtml(str) {
@@ -62,8 +61,32 @@
     });
   }
 
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  // Native <input type="month"> has no picker UI in Safari, so month
+  // selection is built from plain <select>s instead — this supplies the
+  // year range for that dropdown, widened to cover any dates passed in.
+  function yearOptionsForDates(dateStrings) {
+    const currentYear = new Date().getFullYear();
+    let minYear = currentYear - 5;
+    let maxYear = currentYear;
+    dateStrings.forEach((d) => {
+      if (!d) return;
+      const y = Number(d.slice(0, 4));
+      if (y < minYear) minYear = y;
+      if (y > maxYear) maxYear = y;
+    });
+    const years = [];
+    for (let y = maxYear; y >= minYear; y--) years.push(y);
+    return years;
+  }
+
   window.Helpers = {
     formatCurrency, escapeHtml, saleProfit, emptyState, statusLabel,
     todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
+    MONTH_NAMES, yearOptionsForDates,
   };
 })();

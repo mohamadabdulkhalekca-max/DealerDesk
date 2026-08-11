@@ -1,10 +1,5 @@
 /** Dashboard view: always-current stock stats + a selectable-period profit view. */
 (function () {
-  const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-
   function statCard(label, value) {
     const div = document.createElement('div');
     div.className = 'stat-card';
@@ -19,23 +14,6 @@
         ? s.saleDate.slice(0, 7) === periodValue
         : s.saleDate === periodValue;
     });
-  }
-
-  // Native <input type="month"> has no picker UI in Safari, so the month
-  // selector is built from two plain <select>s instead — works everywhere.
-  function yearOptionsFor(sales) {
-    const currentYear = new Date().getFullYear();
-    let minYear = currentYear - 5;
-    let maxYear = currentYear;
-    sales.forEach((s) => {
-      if (!s.saleDate) return;
-      const y = Number(s.saleDate.slice(0, 4));
-      if (y < minYear) minYear = y;
-      if (y > maxYear) maxYear = y;
-    });
-    const years = [];
-    for (let y = maxYear; y >= minYear; y--) years.push(y);
-    return years;
   }
 
   async function render(root) {
@@ -91,7 +69,7 @@
     monthPicker.className = 'month-picker';
 
     const monthSelect = document.createElement('select');
-    MONTH_NAMES.forEach((name, idx) => {
+    Helpers.MONTH_NAMES.forEach((name, idx) => {
       const o = document.createElement('option');
       o.value = String(idx + 1).padStart(2, '0');
       o.textContent = name;
@@ -99,7 +77,7 @@
     });
 
     const yearSelect = document.createElement('select');
-    yearOptionsFor(sales).forEach((y) => {
+    Helpers.yearOptionsForDates(sales.map((s) => s.saleDate)).forEach((y) => {
       const o = document.createElement('option');
       o.value = String(y);
       o.textContent = String(y);

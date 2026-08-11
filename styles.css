@@ -242,8 +242,10 @@ button.danger:hover {
   color: var(--primary-dark);
 }
 
-.month-picker {
+.month-picker,
+.range-picker {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
