@@ -1,5 +1,10 @@
 /** Dashboard view: always-current stock stats + a selectable-period profit view. */
 (function () {
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
   function statCard(label, value) {
     const div = document.createElement('div');
     div.className = 'stat-card';
@@ -14,6 +19,23 @@
         ? s.saleDate.slice(0, 7) === periodValue
         : s.saleDate === periodValue;
     });
+  }
+
+  // Native <input type="month"> has no picker UI in Safari, so the month
+  // selector is built from two plain <select>s instead — works everywhere.
+  function yearOptionsFor(sales) {
+    const currentYear = new Date().getFullYear();
+    let minYear = currentYear - 5;
+    let maxYear = currentYear;
+    sales.forEach((s) => {
+      if (!s.saleDate) return;
+      const y = Number(s.saleDate.slice(0, 4));
+      if (y < minYear) minYear = y;
+      if (y > maxYear) maxYear = y;
+    });
+    const years = [];
+    for (let y = maxYear; y >= minYear; y--) years.push(y);
+    return years;
   }
 
   async function render(root) {
@@ -65,10 +87,32 @@
     toggle.appendChild(dayBtn);
     picker.appendChild(toggle);
 
-    const monthInput = document.createElement('input');
-    monthInput.type = 'month';
-    monthInput.value = state.month;
-    picker.appendChild(monthInput);
+    const monthPicker = document.createElement('div');
+    monthPicker.className = 'month-picker';
+
+    const monthSelect = document.createElement('select');
+    MONTH_NAMES.forEach((name, idx) => {
+      const o = document.createElement('option');
+      o.value = String(idx + 1).padStart(2, '0');
+      o.textContent = name;
+      monthSelect.appendChild(o);
+    });
+
+    const yearSelect = document.createElement('select');
+    yearOptionsFor(sales).forEach((y) => {
+      const o = document.createElement('option');
+      o.value = String(y);
+      o.textContent = String(y);
+      yearSelect.appendChild(o);
+    });
+
+    const [initYear, initMonth] = state.month.split('-');
+    monthSelect.value = initMonth;
+    yearSelect.value = initYear;
+
+    monthPicker.appendChild(monthSelect);
+    monthPicker.appendChild(yearSelect);
+    picker.appendChild(monthPicker);
 
     const dayInput = document.createElement('input');
     dayInput.type = 'date';
@@ -143,7 +187,7 @@
       state.periodType = 'month';
       monthBtn.classList.add('active');
       dayBtn.classList.remove('active');
-      monthInput.classList.remove('hidden');
+      monthPicker.classList.remove('hidden');
       dayInput.classList.add('hidden');
       refresh();
     });
@@ -153,16 +197,16 @@
       dayBtn.classList.add('active');
       monthBtn.classList.remove('active');
       dayInput.classList.remove('hidden');
-      monthInput.classList.add('hidden');
+      monthPicker.classList.add('hidden');
       refresh();
     });
 
-    monthInput.addEventListener('change', () => {
-      if (monthInput.value) {
-        state.month = monthInput.value;
-        refresh();
-      }
-    });
+    function onMonthPickerChange() {
+      state.month = `${yearSelect.value}-${monthSelect.value}`;
+      refresh();
+    }
+    monthSelect.addEventListener('change', onMonthPickerChange);
+    yearSelect.addEventListener('change', onMonthPickerChange);
 
     dayInput.addEventListener('change', () => {
       if (dayInput.value) {
