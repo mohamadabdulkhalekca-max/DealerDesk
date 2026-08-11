@@ -1,21 +1,26 @@
 :root {
-  --bg: #f4f5f7;
+  --bg: #f7f4ef;
   --surface: #ffffff;
-  --border: #e0e2e7;
-  --text: #1c1f26;
-  --text-muted: #6b7280;
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --danger: #dc2626;
-  --danger-dark: #b91c1c;
-  --success-bg: #dcfce7;
-  --success-text: #166534;
-  --warn-bg: #fef9c3;
-  --warn-text: #854d0e;
-  --neutral-bg: #e5e7eb;
-  --neutral-text: #374151;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --border: #e5ddd0;
+  --text: #211c17;
+  --text-muted: #756c60;
+  --primary: #cc4b17;
+  --primary-dark: #a63b11;
+  --primary-soft: #fbe6d9;
+  --danger: #c4392b;
+  --danger-dark: #9e2c20;
+  --success-bg: #dff2e6;
+  --success-text: #1e6b45;
+  --info-bg: #e2ecfa;
+  --info-text: #2c5590;
+  --neutral-bg: #ece7dd;
+  --neutral-text: #56504a;
+  --header-bg: #221d18;
+  --header-text: #f4efe6;
+  --header-text-muted: #b7ad9f;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(34, 25, 15, 0.08), 0 1px 2px rgba(34, 25, 15, 0.06);
+  --font: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -24,7 +29,7 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font);
   background: var(--bg);
   color: var(--text);
 }
@@ -35,11 +40,17 @@ body {
 
 /* Error banner */
 .error-banner {
-  background: #fee2e2;
-  color: #991b1b;
+  background: #fbe4e0;
+  color: #7d2418;
   padding: 0.75rem 1.5rem;
   font-size: 0.9rem;
-  border-bottom: 1px solid #fecaca;
+  border-bottom: 1px solid #f0c7bf;
+}
+
+.error-banner.info {
+  background: var(--info-bg);
+  color: var(--info-text);
+  border-bottom: 1px solid #c3d7f2;
 }
 
 /* Header / nav */
@@ -47,75 +58,83 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.85rem 1.5rem;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  padding: 0.9rem 1.75rem;
+  background: var(--header-bg);
+  border-bottom: 1px solid #35302a;
 }
 
 .brand {
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--header-text);
+  letter-spacing: -0.01em;
 }
 
 .app-nav {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
 .app-nav a {
-  color: var(--text-muted);
+  color: var(--header-text-muted);
   text-decoration: none;
   font-size: 0.92rem;
+  font-weight: 600;
   padding: 0.4rem 0.1rem;
   border-bottom: 2px solid transparent;
 }
 
 .app-nav a:hover {
-  color: var(--text);
+  color: var(--header-text);
 }
 
 .app-nav a.active {
-  color: var(--primary);
+  color: #ffa876;
   border-bottom-color: var(--primary);
 }
 
 .lock-btn {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid #443d35;
   border-radius: var(--radius);
-  padding: 0.4rem 0.8rem;
+  padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
-  color: var(--text-muted);
+  color: var(--header-text-muted);
 }
 
 .lock-btn:hover {
-  background: var(--bg);
+  background: #302a24;
+  color: var(--header-text);
 }
 
 /* Page layout */
 #app-root {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.75rem;
 }
 
 .page h1 {
-  font-size: 1.4rem;
-  margin: 0 0 1rem;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 1.1rem;
 }
 
 .page h2 {
   font-size: 1.1rem;
-  margin: 1.75rem 0 0.75rem;
+  font-weight: 700;
+  margin: 2rem 0 0.85rem;
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
 }
 
 .page-header h1 {
@@ -125,11 +144,12 @@ body {
 /* Buttons */
 button {
   font: inherit;
+  font-weight: 600;
   cursor: pointer;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 0.45rem 0.9rem;
+  padding: 0.5rem 1rem;
   color: var(--text);
 }
 
@@ -149,11 +169,11 @@ button.primary:hover {
 
 button.danger {
   color: var(--danger);
-  border-color: #fecaca;
+  border-color: #f0c7bf;
 }
 
 button.danger:hover {
-  background: #fef2f2;
+  background: #fbeae7;
   border-color: var(--danger);
 }
 
@@ -168,19 +188,73 @@ button.danger:hover {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1rem 1.1rem;
+  padding: 1.1rem 1.2rem;
   box-shadow: var(--shadow);
 }
 
 .stat-value {
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .stat-label {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
+  font-weight: 600;
+}
+
+/* Period picker (dashboard) */
+.period-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.period-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.period-toggle button {
+  border: none;
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text-muted);
+  padding: 0.45rem 0.9rem;
+}
+
+.period-toggle button:hover {
+  background: var(--bg);
+}
+
+.period-toggle button.active {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.period-picker input[type="month"],
+.period-picker input[type="date"] {
+  font: inherit;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.period-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 /* Toolbar */
@@ -193,7 +267,7 @@ button.danger:hover {
 .toolbar input,
 .toolbar select {
   font: inherit;
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -222,17 +296,17 @@ button.danger:hover {
 .data-table th,
 .data-table td {
   text-align: left;
-  padding: 0.65rem 0.9rem;
+  padding: 0.7rem 0.9rem;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 .data-table th {
   color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.78rem;
+  font-weight: 700;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .data-table tbody tr:last-child td {
@@ -247,27 +321,27 @@ button.danger:hover {
 /* Status badges */
 .status-badge {
   display: inline-block;
-  padding: 0.2rem 0.55rem;
+  padding: 0.22rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   background: var(--neutral-bg);
   color: var(--neutral-text);
 }
 
-.status-in_stock {
+.status-in_stock,
+.status-paid {
   background: var(--success-bg);
   color: var(--success-text);
 }
 
 .status-reserved,
 .status-pending {
-  background: var(--warn-bg);
-  color: var(--warn-text);
+  background: var(--info-bg);
+  color: var(--info-text);
 }
 
-.status-sold,
-.status-paid {
+.status-sold {
   background: var(--neutral-bg);
   color: var(--neutral-text);
 }
@@ -288,50 +362,62 @@ button.danger:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1.5rem;
 }
 
 .login-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 16px;
   box-shadow: var(--shadow);
-  padding: 2rem;
+  padding: 3rem 2.75rem;
   width: 100%;
-  max-width: 340px;
+  max-width: 460px;
 }
 
 .login-card h1 {
-  font-size: 1.2rem;
-  margin: 0 0 0.35rem;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5rem;
   text-align: center;
 }
 
 .login-subtitle {
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: 1rem;
   text-align: center;
-  margin: 0 0 1.25rem;
+  margin: 0 0 2rem;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1.1rem;
 }
 
 .login-form input {
   font: inherit;
-  padding: 0.55rem 0.75rem;
+  font-size: 1.05rem;
+  padding: 0.9rem 1.1rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 10px;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 .login-form button {
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
   background: var(--primary);
   border-color: var(--primary);
   color: #fff;
-  padding: 0.55rem;
+  font-size: 1.05rem;
+  padding: 0.85rem;
+  border-radius: 10px;
 }
 
 .login-form button:hover {
@@ -354,7 +440,8 @@ button.danger:hover {
   background: none;
   border: none;
   color: var(--primary);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
   padding: 0.2rem;
   text-decoration: underline;
 }
@@ -374,13 +461,13 @@ button.danger:hover {
   border: none;
   border-radius: var(--radius);
   padding: 0;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px rgba(34, 25, 15, 0.25);
   max-width: 420px;
   width: 90vw;
 }
 
 .app-dialog::backdrop {
-  background: rgba(15, 18, 25, 0.45);
+  background: rgba(20, 16, 12, 0.5);
 }
 
 .dialog-form {
@@ -394,7 +481,8 @@ button.danger:hover {
 
 .dialog-form h2 {
   margin: 0 0 0.25rem;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  font-weight: 800;
 }
 
 .form-field {
@@ -402,6 +490,7 @@ button.danger:hover {
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
@@ -409,8 +498,9 @@ button.danger:hover {
 .form-field select,
 .form-field textarea {
   font: inherit;
+  font-weight: 400;
   color: var(--text);
-  padding: 0.5rem 0.65rem;
+  padding: 0.55rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -446,5 +536,9 @@ button.danger:hover {
 
   .toolbar {
     flex-direction: column;
+  }
+
+  .login-card {
+    padding: 2.25rem 1.5rem;
   }
 }

@@ -32,5 +32,38 @@
     return { in_stock: 'In Stock', reserved: 'Reserved', sold: 'Sold' }[status] || status;
   }
 
-  window.Helpers = { formatCurrency, escapeHtml, saleProfit, emptyState, statusLabel };
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function todayLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  function currentMonthLocal() {
+    return todayLocal().slice(0, 7);
+  }
+
+  function formatMonthLabel(monthValue) {
+    const [year, month] = monthValue.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+
+  function formatDayLabel(dayValue) {
+    const [year, month, day] = dayValue.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
+  window.Helpers = {
+    formatCurrency, escapeHtml, saleProfit, emptyState, statusLabel,
+    todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
+  };
 })();

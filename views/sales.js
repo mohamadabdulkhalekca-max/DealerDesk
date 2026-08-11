@@ -265,6 +265,21 @@
           <td class="row-actions"></td>
         `;
         const actionsCell = tr.querySelector('.row-actions');
+        const receiptBtn = document.createElement('button');
+        receiptBtn.textContent = 'Receipt';
+        receiptBtn.addEventListener('click', async () => {
+          receiptBtn.disabled = true;
+          try {
+            const result = await Receipt.shareReceipt(s, car);
+            if (result.method === 'download') {
+              App.showInfo('Sharing isn’t available on this browser — the receipt PDF was downloaded instead.');
+            }
+          } catch (err) {
+            App.showError(err.message);
+          } finally {
+            receiptBtn.disabled = false;
+          }
+        });
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
         editBtn.addEventListener('click', () => openSaleDialog(s, reload));
@@ -280,6 +295,7 @@
             App.showError(err.message);
           }
         });
+        actionsCell.appendChild(receiptBtn);
         actionsCell.appendChild(editBtn);
         actionsCell.appendChild(deleteBtn);
         tbody.appendChild(tr);

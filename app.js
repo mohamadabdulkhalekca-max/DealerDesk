@@ -7,16 +7,24 @@
   const errorBanner = document.getElementById('error-banner');
 
   function showError(message) {
+    errorBanner.classList.remove('info');
+    errorBanner.textContent = message;
+    errorBanner.classList.remove('hidden');
+  }
+
+  function showInfo(message) {
+    errorBanner.classList.add('info');
     errorBanner.textContent = message;
     errorBanner.classList.remove('hidden');
   }
 
   function clearError() {
     errorBanner.classList.add('hidden');
+    errorBanner.classList.remove('info');
     errorBanner.textContent = '';
   }
 
-  window.App = { showError, clearError };
+  window.App = { showError, showInfo, clearError };
 
   function setActiveNav(route) {
     nav.querySelectorAll('a[data-route]').forEach((a) => {
