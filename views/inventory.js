@@ -47,6 +47,59 @@
     return wrap;
   }
 
+  function buildPhotoField(car) {
+    const state = { file: null, removed: false };
+
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-field';
+
+    const preview = document.createElement('img');
+    preview.className = 'photo-preview';
+    preview.alt = 'Car photo';
+    if (car && car.photoUrl) {
+      preview.src = car.photoUrl;
+    } else {
+      preview.classList.add('hidden');
+    }
+    wrap.appendChild(preview);
+
+    const controls = document.createElement('div');
+    controls.className = 'photo-controls';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    controls.appendChild(fileInput);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remove Photo';
+    if (!(car && car.photoUrl)) removeBtn.classList.add('hidden');
+    controls.appendChild(removeBtn);
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      state.file = file;
+      state.removed = false;
+      preview.src = URL.createObjectURL(file);
+      preview.classList.remove('hidden');
+      removeBtn.classList.remove('hidden');
+    });
+
+    removeBtn.addEventListener('click', () => {
+      state.file = null;
+      state.removed = true;
+      fileInput.value = '';
+      preview.removeAttribute('src');
+      preview.classList.add('hidden');
+      removeBtn.classList.add('hidden');
+    });
+
+    wrap.appendChild(controls);
+    return { element: wrap, state };
+  }
+
   function openCarDialog(car, onSaved) {
     const dialog = document.createElement('dialog');
     dialog.className = 'app-dialog';
@@ -58,6 +111,9 @@
     const h2 = document.createElement('h2');
     h2.textContent = car ? 'Edit Car' : 'Add Car';
     form.appendChild(h2);
+
+    const photo = buildPhotoField(car);
+    form.appendChild(photo.element);
 
     FIELDS.forEach((field) => form.appendChild(buildFormField(field, car)));
 
@@ -98,6 +154,19 @@
       if (!data.status) data.status = 'in_stock';
 
       saveBtn.disabled = true;
+      if (photo.state.file) {
+        try {
+          data.photoUrl = await Storage.uploadCarPhoto(photo.state.file);
+        } catch (err) {
+          errorMsg.textContent = err.message;
+          errorMsg.classList.remove('hidden');
+          saveBtn.disabled = false;
+          return;
+        }
+      } else if (photo.state.removed) {
+        data.photoUrl = null;
+      }
+
       try {
         await Storage.saveCar(data);
       } catch (err) {
@@ -173,7 +242,7 @@
     table.className = 'data-table';
     table.innerHTML = `
       <thead>
-        <tr><th>Make</th><th>Model</th><th>Year</th><th>Status</th><th>Purchase Price</th><th>Mileage</th><th></th></tr>
+        <tr><th></th><th>Make</th><th>Model</th><th>Year</th><th>Status</th><th>Purchase Price</th><th>Mileage</th><th></th></tr>
       </thead>
     `;
     const tbody = document.createElement('tbody');
@@ -217,6 +286,11 @@
       cars.forEach((c) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
+          <td>${
+            c.photoUrl
+              ? `<img class="table-thumb" alt="" src="${Helpers.escapeHtml(c.photoUrl)}">`
+              : '<div class="table-thumb table-thumb-empty"></div>'
+          }</td>
           <td>${Helpers.escapeHtml(c.make)}</td>
           <td>${Helpers.escapeHtml(c.model)}</td>
           <td>${Helpers.escapeHtml(c.year)}</td>
@@ -226,6 +300,14 @@
           <td class="row-actions"></td>
         `;
         const actionsCell = tr.querySelector('.row-actions');
+        if (c.status !== 'sold') {
+          const sellBtn = document.createElement('button');
+          sellBtn.textContent = 'Sell';
+          sellBtn.addEventListener('click', () =>
+            SaleDialog.open(null, { onSaved: reload, presetCarId: c.id })
+          );
+          actionsCell.appendChild(sellBtn);
+        }
         const editBtn = document.createElement('button');
         editBtn.textContent = 'Edit';
         editBtn.addEventListener('click', () => openCarDialog(c, reload));

@@ -20,6 +20,7 @@
       purchaseDate: row.purchase_date,
       status: row.status,
       notes: row.notes,
+      photoUrl: row.photo_url,
     };
   }
 
@@ -35,6 +36,7 @@
     if (car.purchaseDate !== undefined) row.purchase_date = car.purchaseDate || null;
     if (car.status !== undefined) row.status = car.status;
     if (car.notes !== undefined) row.notes = car.notes || null;
+    if (car.photoUrl !== undefined) row.photo_url = car.photoUrl || null;
     return row;
   }
 
@@ -103,6 +105,24 @@
     }
   }
 
+  async function uploadCarPhoto(file) {
+    const {
+      data: { session },
+    } = await db.auth.getSession();
+    const userId = session && session.user && session.user.id;
+    if (!userId) throw new Error('You must be signed in to upload a photo.');
+
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+    const { error: uploadError } = await db.storage
+      .from('car-photos')
+      .upload(path, file, { contentType: file.type });
+    if (uploadError) throw new Error(uploadError.message);
+
+    const { data } = db.storage.from('car-photos').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   // --- Sales ---
 
   async function getSales() {
@@ -137,7 +157,7 @@
   }
 
   window.Storage = {
-    getCars, getCar, saveCar, deleteCar,
+    getCars, getCar, saveCar, deleteCar, uploadCarPhoto,
     getSales, getSale, saveSale, deleteSale,
   };
 })();
