@@ -17,7 +17,8 @@
   function saleProfit(sale, cars) {
     const car = cars.find((c) => c.id === sale.carId);
     if (!car) return 0;
-    return Number(sale.salePrice || 0) - Number(car.purchasePrice || 0);
+    const cost = Number(car.purchasePrice || 0) + Number(car.additionalCosts || 0);
+    return Number(sale.salePrice || 0) - cost;
   }
 
   function emptyState(message) {
@@ -93,6 +94,7 @@
     edit: `<svg ${ICON_ATTRS}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
     delete: `<svg ${ICON_ATTRS}><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
     sell: `<svg ${ICON_ATTRS}><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>`,
+    flyer: `<svg ${ICON_ATTRS}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.7"/><path d="M21 15l-5.5-5.5a1 1 0 0 0-1.4 0L5 19"/></svg>`,
   };
 
   function iconButton(iconName, label, extraClass) {
@@ -105,9 +107,31 @@
     return btn;
   }
 
+  function toCsv(rows, columns) {
+    const escapeCell = (val) => {
+      const s = val === null || val === undefined ? '' : String(val);
+      return /["\n,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = columns.map((c) => escapeCell(c.label)).join(',');
+    const lines = rows.map((row) => columns.map((c) => escapeCell(row[c.key])).join(','));
+    return [header, ...lines].join('\r\n');
+  }
+
+  function downloadCsv(filename, csvText) {
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   window.Helpers = {
     formatCurrency, escapeHtml, saleProfit, emptyState, statusLabel,
     todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
-    MONTH_NAMES, yearOptionsForDates, iconButton,
+    MONTH_NAMES, yearOptionsForDates, iconButton, toCsv, downloadCsv,
   };
 })();

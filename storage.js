@@ -17,6 +17,8 @@
       color: row.color,
       mileage: row.mileage,
       purchasePrice: row.purchase_price,
+      additionalCosts: row.additional_costs,
+      askingPrice: row.asking_price,
       purchaseDate: row.purchase_date,
       status: row.status,
       notes: row.notes,
@@ -33,6 +35,8 @@
     if (car.color !== undefined) row.color = car.color || null;
     if (car.mileage !== undefined) row.mileage = car.mileage === '' ? null : car.mileage;
     if (car.purchasePrice !== undefined) row.purchase_price = car.purchasePrice;
+    if (car.additionalCosts !== undefined) row.additional_costs = car.additionalCosts === '' ? 0 : car.additionalCosts;
+    if (car.askingPrice !== undefined) row.asking_price = car.askingPrice === '' ? null : car.askingPrice;
     if (car.purchaseDate !== undefined) row.purchase_date = car.purchaseDate || null;
     if (car.status !== undefined) row.status = car.status;
     if (car.notes !== undefined) row.notes = car.notes || null;
@@ -99,9 +103,18 @@
   }
 
   async function deleteCar(id) {
+    // Fetched before deleting so we know which storage files to clean up
+    // afterward — but only if the row delete actually succeeds (a car
+    // blocked by a linked sale must keep its photos).
+    const existing = await getCar(id);
+
     const { error } = await db.from('cars').delete().eq('id', id);
     if (error) {
       throw friendlyError(error, 'This car has a recorded sale — delete the sale first.');
+    }
+
+    if (existing && existing.photoUrls && existing.photoUrls.length) {
+      await Promise.allSettled(existing.photoUrls.map((url) => deleteCarPhoto(url)));
     }
   }
 
@@ -121,6 +134,18 @@
 
     const { data } = db.storage.from('car-photos').getPublicUrl(path);
     return data.publicUrl;
+  }
+
+  // Best-effort: removes the underlying file from the car-photos bucket
+  // for a photo no longer referenced by any car. Silently no-ops if the
+  // URL isn't a recognizable path in that bucket (never throws — this
+  // runs as background cleanup, not something that should block a save).
+  async function deleteCarPhoto(url) {
+    const marker = '/car-photos/';
+    const idx = url.indexOf(marker);
+    if (idx === -1) return;
+    const path = url.slice(idx + marker.length).split('?')[0];
+    await db.storage.from('car-photos').remove([path]);
   }
 
   // --- Sales ---
@@ -157,7 +182,7 @@
   }
 
   window.Storage = {
-    getCars, getCar, saveCar, deleteCar, uploadCarPhoto,
+    getCars, getCar, saveCar, deleteCar, uploadCarPhoto, deleteCarPhoto,
     getSales, getSale, saveSale, deleteSale,
   };
 })();

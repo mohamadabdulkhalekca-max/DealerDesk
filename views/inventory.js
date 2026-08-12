@@ -71,6 +71,8 @@
     { key: 'color', label: 'Color', type: 'text', required: false },
     { key: 'mileage', label: 'Mileage', type: 'number', required: false },
     { key: 'purchasePrice', label: 'Purchase Price', type: 'number', required: true },
+    { key: 'additionalCosts', label: 'Additional Costs (repairs, etc.)', type: 'number', required: false },
+    { key: 'askingPrice', label: 'Asking Price (for listings)', type: 'number', required: false },
     { key: 'purchaseDate', label: 'Purchase Date', type: 'date', required: false },
     { key: 'status', label: 'Status', type: 'select', required: false, wide: true,
       options: [
@@ -113,9 +115,13 @@
   function buildPhotoField(car) {
     // keptExisting: photo URLs already on the car that the user hasn't
     // removed. newFiles: photos picked in this session, not yet uploaded.
+    // removedExisting: existing URLs the user removed — their storage
+    // files get cleaned up after a successful save (not before, in case
+    // the dialog is cancelled).
     const state = {
       keptExisting: car && car.photoUrls ? [...car.photoUrls] : [],
       newFiles: [],
+      removedExisting: [],
     };
 
     const wrap = document.createElement('div');
@@ -161,6 +167,7 @@
         grid.appendChild(
           photoThumb(url, () => {
             state.keptExisting.splice(idx, 1);
+            state.removedExisting.push(url);
             renderGrid();
           })
         );
@@ -286,6 +293,10 @@
         saveBtn.disabled = false;
         return;
       }
+      if (photo.state.removedExisting.length) {
+        Promise.allSettled(photo.state.removedExisting.map((url) => Storage.deleteCarPhoto(url)));
+      }
+      App.showToast(car ? 'Car updated' : 'Car added');
       dialog.close();
       dialog.remove();
       onSaved();
@@ -313,11 +324,35 @@
     const h1 = document.createElement('h1');
     h1.textContent = 'Inventory';
     header.appendChild(h1);
+
+    const headerActions = document.createElement('div');
+    headerActions.className = 'header-actions';
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = 'Export CSV';
+    exportBtn.addEventListener('click', () => {
+      const columns = [
+        { key: 'make', label: 'Make' },
+        { key: 'model', label: 'Model' },
+        { key: 'year', label: 'Year' },
+        { key: 'vin', label: 'VIN' },
+        { key: 'color', label: 'Color' },
+        { key: 'mileage', label: 'Mileage' },
+        { key: 'purchasePrice', label: 'Purchase Price' },
+        { key: 'additionalCosts', label: 'Additional Costs' },
+        { key: 'askingPrice', label: 'Asking Price' },
+        { key: 'purchaseDate', label: 'Purchase Date' },
+        { key: 'status', label: 'Status' },
+        { key: 'notes', label: 'Notes' },
+      ];
+      Helpers.downloadCsv(`inventory-${Helpers.todayLocal()}.csv`, Helpers.toCsv(allCars, columns));
+    });
+    headerActions.appendChild(exportBtn);
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
     addBtn.textContent = '+ Add Car';
     addBtn.addEventListener('click', () => openCarDialog(null, reload));
-    header.appendChild(addBtn);
+    headerActions.appendChild(addBtn);
+    header.appendChild(headerActions);
     wrap.appendChild(header);
 
     const controls = document.createElement('div');
@@ -423,6 +458,22 @@
         }
         const actionsCell = tr.querySelector('.row-actions');
         if (c.status !== 'sold') {
+          const flyerBtn = Helpers.iconButton('flyer', 'Share For-Sale Flyer');
+          flyerBtn.addEventListener('click', async () => {
+            flyerBtn.disabled = true;
+            try {
+              const result = await Flyer.shareFlyer(c);
+              if (result.method === 'download') {
+                App.showInfo('Sharing isn’t available on this browser — the flyer PDF was downloaded instead.');
+              }
+            } catch (err) {
+              App.showError(err.message);
+            } finally {
+              flyerBtn.disabled = false;
+            }
+          });
+          actionsCell.appendChild(flyerBtn);
+
           const sellBtn = Helpers.iconButton('sell', 'Sell');
           sellBtn.addEventListener('click', () =>
             SaleDialog.open(null, { onSaved: reload, presetCarId: c.id })
@@ -433,9 +484,14 @@
         editBtn.addEventListener('click', () => openCarDialog(c, reload));
         const deleteBtn = Helpers.iconButton('delete', 'Delete', 'danger');
         deleteBtn.addEventListener('click', async () => {
-          if (!confirm(`Delete ${c.year} ${c.make} ${c.model}?`)) return;
+          const ok = await ConfirmDialog.open({
+            title: 'Delete car?',
+            message: `Delete ${c.year} ${c.make} ${c.model}? This can't be undone.`,
+          });
+          if (!ok) return;
           try {
             await Storage.deleteCar(c.id);
+            App.showToast('Car deleted');
             await reload();
           } catch (err) {
             App.showError(err.message);

@@ -197,6 +197,7 @@
         saveBtn.disabled = false;
         return;
       }
+      App.showToast(sale ? 'Sale updated' : 'Sale recorded');
       dialog.close();
       dialog.remove();
       if (onSaved) onSaved();

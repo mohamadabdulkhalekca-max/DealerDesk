@@ -137,6 +137,12 @@ body {
   margin-bottom: 1.1rem;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .page-header h1 {
   margin: 0;
 }
@@ -175,6 +181,15 @@ button.danger {
 button.danger:hover {
   background: #fbeae7;
   border-color: var(--danger);
+}
+
+button.primary.danger-solid {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+button.primary.danger-solid:hover {
+  background: var(--danger-dark);
 }
 
 /* Stats grid */
@@ -509,6 +524,55 @@ button.danger:hover {
 .dialog-form > .photo-field,
 .dialog-form > .dialog-actions {
   grid-column: 1 / -1;
+}
+
+.confirm-dialog {
+  max-width: 380px;
+}
+
+.confirm-box {
+  padding: 1.5rem;
+}
+
+.confirm-box h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.confirm-message {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.confirm-box .dialog-actions {
+  margin-top: 1.25rem;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 0.7rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 60;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .dialog-form h2 {

@@ -24,7 +24,24 @@
     errorBanner.textContent = '';
   }
 
-  window.App = { showError, showInfo, clearError };
+  let toastEl = null;
+  let toastTimer = null;
+  function showToast(message) {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'toast';
+      document.body.appendChild(toastEl);
+    }
+    toastEl.textContent = message;
+    // Force reflow so re-triggering the same message still re-animates.
+    toastEl.classList.remove('show');
+    void toastEl.offsetWidth;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
+  }
+
+  window.App = { showError, showInfo, clearError, showToast };
 
   function setActiveNav(route) {
     nav.querySelectorAll('a[data-route]').forEach((a) => {

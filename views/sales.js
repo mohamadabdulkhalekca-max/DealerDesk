@@ -41,6 +41,7 @@
     let allSales = [];
 
     const state = {
+      search: '',
       periodType: 'all',
       day: Helpers.todayLocal(),
       month: Helpers.currentMonthLocal(),
@@ -56,12 +57,57 @@
     const h1 = document.createElement('h1');
     h1.textContent = 'Sales';
     header.appendChild(h1);
+
+    const headerActions = document.createElement('div');
+    headerActions.className = 'header-actions';
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = 'Export CSV';
+    exportBtn.addEventListener('click', () => {
+      const rows = allSales.map((s) => {
+        const car = allCars.find((c) => c.id === s.carId);
+        return {
+          car: carLabel(car),
+          buyerName: s.buyerName,
+          buyerContact: s.buyerContact,
+          salePrice: s.salePrice,
+          profit: Helpers.saleProfit(s, allCars),
+          saleDate: s.saleDate,
+          paymentStatus: s.paymentStatus,
+          notes: s.notes,
+        };
+      });
+      const columns = [
+        { key: 'car', label: 'Car' },
+        { key: 'buyerName', label: 'Buyer Name' },
+        { key: 'buyerContact', label: 'Buyer Contact' },
+        { key: 'salePrice', label: 'Sale Price' },
+        { key: 'profit', label: 'Profit' },
+        { key: 'saleDate', label: 'Sale Date' },
+        { key: 'paymentStatus', label: 'Payment Status' },
+        { key: 'notes', label: 'Notes' },
+      ];
+      Helpers.downloadCsv(`sales-${Helpers.todayLocal()}.csv`, Helpers.toCsv(rows, columns));
+    });
+    headerActions.appendChild(exportBtn);
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
     addBtn.textContent = '+ Add Sale';
     addBtn.addEventListener('click', () => SaleDialog.open(null, { onSaved: reload }));
-    header.appendChild(addBtn);
+    headerActions.appendChild(addBtn);
+    header.appendChild(headerActions);
     wrap.appendChild(header);
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'toolbar';
+    const searchInput = document.createElement('input');
+    searchInput.type = 'search';
+    searchInput.placeholder = 'Search buyer or car…';
+    searchInput.addEventListener('input', () => {
+      state.search = searchInput.value.trim();
+      renderRows();
+    });
+    toolbar.appendChild(searchInput);
+    wrap.appendChild(toolbar);
 
     // Period picker
     const picker = document.createElement('div');
@@ -145,13 +191,26 @@
       return `${state.rangeStart} to ${state.rangeEnd}`;
     }
 
-    function filterByPeriod(sales) {
+    function applyFilters(sales) {
       return sales.filter((s) => {
-        if (state.periodType === 'all') return true;
-        if (!s.saleDate) return false;
-        if (state.periodType === 'day') return s.saleDate === state.day;
-        if (state.periodType === 'month') return s.saleDate.slice(0, 7) === state.month;
-        return s.saleDate >= state.rangeStart && s.saleDate <= state.rangeEnd;
+        if (state.periodType !== 'all') {
+          if (!s.saleDate) return false;
+          if (state.periodType === 'day' && s.saleDate !== state.day) return false;
+          if (state.periodType === 'month' && s.saleDate.slice(0, 7) !== state.month) return false;
+          if (
+            state.periodType === 'range' &&
+            !(s.saleDate >= state.rangeStart && s.saleDate <= state.rangeEnd)
+          ) {
+            return false;
+          }
+        }
+        if (state.search) {
+          const car = allCars.find((c) => c.id === s.carId);
+          const q = state.search.toLowerCase();
+          const hay = `${s.buyerName} ${carLabel(car)}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
       });
     }
 
@@ -200,7 +259,7 @@
     });
 
     function renderRows() {
-      const filtered = filterByPeriod(allSales).sort(
+      const filtered = applyFilters(allSales).sort(
         (a, b) => new Date(b.saleDate) - new Date(a.saleDate)
       );
       const profit = filtered.reduce((sum, s) => sum + Helpers.saleProfit(s, allCars), 0);
@@ -215,7 +274,11 @@
         tableWrap.classList.add('hidden');
         emptyWrap.appendChild(
           Helpers.emptyState(
-            allSales.length === 0 ? 'No sales recorded yet.' : 'No sales in this period.'
+            allSales.length === 0
+              ? 'No sales recorded yet.'
+              : state.search
+              ? 'No sales match your search.'
+              : 'No sales in this period.'
           )
         );
         return;
@@ -254,9 +317,14 @@
         editBtn.addEventListener('click', () => SaleDialog.open(s, { onSaved: reload }));
         const deleteBtn = Helpers.iconButton('delete', 'Delete', 'danger');
         deleteBtn.addEventListener('click', async () => {
-          if (!confirm(`Delete this sale to ${s.buyerName}?`)) return;
+          const ok = await ConfirmDialog.open({
+            title: 'Delete sale?',
+            message: `Delete this sale to ${s.buyerName}? This can't be undone.`,
+          });
+          if (!ok) return;
           try {
             await Storage.deleteSale(s.id);
+            App.showToast('Sale deleted');
             await reload();
           } catch (err) {
             App.showError(err.message);
