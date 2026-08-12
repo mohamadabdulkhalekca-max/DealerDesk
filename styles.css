@@ -599,6 +599,7 @@ button.danger:hover {
   position: relative;
   width: 44px;
   height: 44px;
+  cursor: pointer;
 }
 
 .table-thumb {
@@ -629,6 +630,100 @@ button.danger:hover {
   padding: 1px 4px;
   border-radius: 999px;
   line-height: 1.3;
+}
+
+.photo-viewer-dialog {
+  max-width: 90vw;
+  width: auto;
+  background: transparent;
+  box-shadow: none;
+}
+
+.photo-viewer-dialog::backdrop {
+  background: rgba(10, 8, 6, 0.82);
+}
+
+.photo-viewer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--header-bg);
+  border-radius: var(--radius);
+  padding: 1rem;
+  min-width: 320px;
+  min-height: 240px;
+}
+
+.photo-viewer-img {
+  max-width: min(80vw, 900px);
+  max-height: 80vh;
+  object-fit: contain;
+  display: block;
+  border-radius: 6px;
+}
+
+.photo-viewer-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.photo-viewer-close:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.photo-viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.photo-viewer-nav:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.photo-viewer-prev {
+  left: 0.75rem;
+}
+
+.photo-viewer-next {
+  right: 0.75rem;
+}
+
+.photo-viewer-counter {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
 }
 
 .dialog-actions {

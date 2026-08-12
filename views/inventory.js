@@ -1,5 +1,68 @@
 /** Inventory view: car list with search/filter, add/edit/delete. */
 (function () {
+  function openPhotoViewer(urls, startIndex) {
+    let index = startIndex;
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'app-dialog photo-viewer-dialog';
+
+    const content = document.createElement('div');
+    content.className = 'photo-viewer';
+
+    const img = document.createElement('img');
+    img.className = 'photo-viewer-img';
+    img.alt = '';
+    content.appendChild(img);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'photo-viewer-close';
+    closeBtn.textContent = '×';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.addEventListener('click', () => dialog.close());
+    content.appendChild(closeBtn);
+
+    let counter = null;
+    function show(i) {
+      index = (i + urls.length) % urls.length;
+      img.src = urls[index];
+      if (counter) counter.textContent = `${index + 1} / ${urls.length}`;
+    }
+
+    if (urls.length > 1) {
+      const prevBtn = document.createElement('button');
+      prevBtn.type = 'button';
+      prevBtn.className = 'photo-viewer-nav photo-viewer-prev';
+      prevBtn.textContent = '‹';
+      prevBtn.setAttribute('aria-label', 'Previous photo');
+      prevBtn.addEventListener('click', () => show(index - 1));
+      content.appendChild(prevBtn);
+
+      const nextBtn = document.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.className = 'photo-viewer-nav photo-viewer-next';
+      nextBtn.textContent = '›';
+      nextBtn.setAttribute('aria-label', 'Next photo');
+      nextBtn.addEventListener('click', () => show(index + 1));
+      content.appendChild(nextBtn);
+
+      counter = document.createElement('div');
+      counter.className = 'photo-viewer-counter';
+      content.appendChild(counter);
+
+      dialog.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') show(index - 1);
+        else if (e.key === 'ArrowRight') show(index + 1);
+      });
+    }
+
+    dialog.appendChild(content);
+    document.body.appendChild(dialog);
+    dialog.addEventListener('close', () => dialog.remove());
+    dialog.showModal();
+    show(startIndex);
+  }
+
   const FIELDS = [
     { key: 'make', label: 'Make', type: 'text', required: true },
     { key: 'model', label: 'Model', type: 'text', required: true },
@@ -353,6 +416,11 @@
           <td>${c.mileage ? Number(c.mileage).toLocaleString() : '—'}</td>
           <td class="row-actions"></td>
         `;
+        if (c.photoUrls && c.photoUrls.length) {
+          tr.querySelector('.table-thumb-wrap').addEventListener('click', () =>
+            openPhotoViewer(c.photoUrls, 0)
+          );
+        }
         const actionsCell = tr.querySelector('.row-actions');
         if (c.status !== 'sold') {
           const sellBtn = document.createElement('button');
