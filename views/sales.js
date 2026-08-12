@@ -47,6 +47,8 @@
       month: Helpers.currentMonthLocal(),
       rangeStart: `${Helpers.currentMonthLocal()}-01`,
       rangeEnd: Helpers.todayLocal(),
+      sort: { key: 'saleDate', dir: -1 },
+      page: 1,
     };
 
     const wrap = document.createElement('div');
@@ -104,6 +106,7 @@
     searchInput.placeholder = 'Search buyer or car…';
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value.trim();
+      state.page = 1;
       renderRows();
     });
     toolbar.appendChild(searchInput);
@@ -171,11 +174,31 @@
     tableWrap.className = 'table-wrap';
     const table = document.createElement('table');
     table.className = 'data-table';
-    table.innerHTML = `
-      <thead>
-        <tr><th>Car</th><th>Buyer</th><th>Sale Price</th><th>Profit</th><th>Date</th><th>Payment</th><th></th></tr>
-      </thead>
-    `;
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    const SORT_COLUMNS = [
+      ['car', 'Car'],
+      ['buyerName', 'Buyer'],
+      ['salePrice', 'Sale Price'],
+      ['profit', 'Profit'],
+      ['saleDate', 'Date'],
+      ['paymentStatus', 'Payment'],
+    ];
+    SORT_COLUMNS.forEach(([key, label]) => {
+      headRow.appendChild(
+        Helpers.sortableHeader(label, key, state.sort, (clickedKey) => {
+          if (state.sort.key === clickedKey) {
+            state.sort.dir *= -1;
+          } else {
+            state.sort = { key: clickedKey, dir: 1 };
+          }
+          renderRows();
+        })
+      );
+    });
+    headRow.appendChild(document.createElement('th'));
+    thead.appendChild(headRow);
+    table.appendChild(thead);
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     tableWrap.appendChild(table);
@@ -183,6 +206,20 @@
 
     const emptyWrap = document.createElement('div');
     wrap.appendChild(emptyWrap);
+
+    const pagination = document.createElement('div');
+    pagination.className = 'pagination hidden';
+    wrap.appendChild(pagination);
+
+    const SORT_GETTERS = {
+      car: (s) => carLabel(allCars.find((c) => c.id === s.carId)),
+      buyerName: (s) => s.buyerName || '',
+      salePrice: (s) => Number(s.salePrice) || 0,
+      profit: (s) => Helpers.saleProfit(s, allCars),
+      saleDate: (s) => s.saleDate || '',
+      paymentStatus: (s) => s.paymentStatus || '',
+    };
+    const PAGE_SIZE = 20;
 
     function periodLabel() {
       if (state.periodType === 'all') return 'All Time';
@@ -216,6 +253,7 @@
 
     function setPeriodType(type) {
       state.periodType = type;
+      state.page = 1;
       allBtn.classList.toggle('active', type === 'all');
       dayBtn.classList.toggle('active', type === 'day');
       monthBtn.classList.toggle('active', type === 'month');
@@ -234,12 +272,14 @@
     dayInput.addEventListener('change', () => {
       if (dayInput.value) {
         state.day = dayInput.value;
+        state.page = 1;
         renderRows();
       }
     });
 
     function onMonthPickerChange() {
       state.month = `${yearSelect.value}-${monthSelect.value}`;
+      state.page = 1;
       renderRows();
     }
     monthSelect.addEventListener('change', onMonthPickerChange);
@@ -248,20 +288,29 @@
     rangeStartInput.addEventListener('change', () => {
       if (rangeStartInput.value) {
         state.rangeStart = rangeStartInput.value;
+        state.page = 1;
         renderRows();
       }
     });
     rangeEndInput.addEventListener('change', () => {
       if (rangeEndInput.value) {
         state.rangeEnd = rangeEndInput.value;
+        state.page = 1;
         renderRows();
       }
     });
 
     function renderRows() {
-      const filtered = applyFilters(allSales).sort(
-        (a, b) => new Date(b.saleDate) - new Date(a.saleDate)
-      );
+      headRow.querySelectorAll('.th-sort-btn').forEach((btn, idx) => {
+        const [key, label] = SORT_COLUMNS[idx];
+        const arrow = state.sort.key === key ? (state.sort.dir === 1 ? ' ▲' : ' ▼') : '';
+        btn.textContent = label + arrow;
+      });
+
+      const filtered = applyFilters(allSales);
+      const getter = SORT_GETTERS[state.sort.key];
+      filtered.sort((a, b) => Helpers.compareValues(getter(a), getter(b)) * state.sort.dir);
+
       const profit = filtered.reduce((sum, s) => sum + Helpers.saleProfit(s, allCars), 0);
       const label = periodLabel();
 
@@ -272,6 +321,7 @@
       emptyWrap.innerHTML = '';
       if (filtered.length === 0) {
         tableWrap.classList.add('hidden');
+        pagination.classList.add('hidden');
         emptyWrap.appendChild(
           Helpers.emptyState(
             allSales.length === 0
@@ -285,8 +335,41 @@
       }
       tableWrap.classList.remove('hidden');
 
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (state.page > totalPages) state.page = totalPages;
+      const pageStart = (state.page - 1) * PAGE_SIZE;
+      const pageSales = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+      pagination.innerHTML = '';
+      if (totalPages > 1) {
+        pagination.classList.remove('hidden');
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.textContent = 'Previous';
+        prevBtn.disabled = state.page === 1;
+        prevBtn.addEventListener('click', () => {
+          state.page -= 1;
+          renderRows();
+        });
+        const pageLabel = document.createElement('span');
+        pageLabel.textContent = `Page ${state.page} of ${totalPages}`;
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.textContent = 'Next';
+        nextBtn.disabled = state.page === totalPages;
+        nextBtn.addEventListener('click', () => {
+          state.page += 1;
+          renderRows();
+        });
+        pagination.appendChild(prevBtn);
+        pagination.appendChild(pageLabel);
+        pagination.appendChild(nextBtn);
+      } else {
+        pagination.classList.add('hidden');
+      }
+
       tbody.innerHTML = '';
-      filtered.forEach((s) => {
+      pageSales.forEach((s) => {
         const car = allCars.find((c) => c.id === s.carId);
         const tr = document.createElement('tr');
         tr.innerHTML = `

@@ -22,7 +22,15 @@
     const [cars, sales] = await Promise.all([Storage.getCars(), Storage.getSales()]);
 
     const inStock = cars.filter((c) => c.status === 'in_stock');
-    const inventoryValue = inStock.reduce((sum, c) => sum + Number(c.purchasePrice || 0), 0);
+    const inventoryValue = inStock.reduce(
+      (sum, c) => sum + Number(c.purchasePrice || 0) + Number(c.additionalCosts || 0),
+      0
+    );
+    const notSold = cars.filter((c) => c.status !== 'sold');
+    const agingCars = notSold
+      .map((c) => ({ car: c, days: Helpers.daysInStock(c) }))
+      .filter(({ days }) => days !== null && days >= Helpers.AGING_THRESHOLD_DAYS)
+      .sort((a, b) => b.days - a.days);
 
     const state = {
       periodType: 'month',
@@ -43,7 +51,35 @@
     stats.className = 'stats-grid';
     stats.appendChild(statCard('Cars in Stock', inStock.length));
     stats.appendChild(statCard('Inventory Value', Helpers.formatCurrency(inventoryValue)));
+    stats.appendChild(statCard(`Aging (${Helpers.AGING_THRESHOLD_DAYS}+ days)`, agingCars.length));
     wrap.appendChild(stats);
+
+    if (agingCars.length > 0) {
+      const agingTitle = document.createElement('h2');
+      agingTitle.textContent = 'Aging Inventory';
+      wrap.appendChild(agingTitle);
+
+      const agingTableWrap = document.createElement('div');
+      agingTableWrap.className = 'table-wrap';
+      const agingTable = document.createElement('table');
+      agingTable.className = 'data-table';
+      agingTable.innerHTML =
+        '<thead><tr><th>Car</th><th>Status</th><th>Days in Stock</th><th>Purchase Price</th></tr></thead>';
+      const agingBody = document.createElement('tbody');
+      agingCars.forEach(({ car, days }) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${Helpers.escapeHtml(`${car.year} ${car.make} ${car.model}`)}</td>
+          <td><span class="status-badge status-${car.status}">${Helpers.statusLabel(car.status)}</span></td>
+          <td>${days} days</td>
+          <td>${Helpers.formatCurrency(car.purchasePrice)}</td>
+        `;
+        agingBody.appendChild(tr);
+      });
+      agingTable.appendChild(agingBody);
+      agingTableWrap.appendChild(agingTable);
+      wrap.appendChild(agingTableWrap);
+    }
 
     const profitTitle = document.createElement('h2');
     profitTitle.textContent = 'Profit by Period';

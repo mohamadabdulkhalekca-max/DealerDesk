@@ -312,7 +312,7 @@
   }
 
   async function render(root) {
-    const state = { filter: 'all', search: '' };
+    const state = { filter: 'all', search: '', sort: { key: null, dir: 1 }, page: 1 };
     let allCars = [];
 
     root.innerHTML = '<div class="page-loading">Loading…</div>';
@@ -362,6 +362,7 @@
     searchInput.placeholder = 'Search make, model, VIN…';
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value.trim();
+      state.page = 1;
       renderRows();
     });
     controls.appendChild(searchInput);
@@ -380,6 +381,7 @@
     });
     filterSelect.addEventListener('change', () => {
       state.filter = filterSelect.value;
+      state.page = 1;
       renderRows();
     });
     controls.appendChild(filterSelect);
@@ -389,11 +391,32 @@
     tableWrap.className = 'table-wrap';
     const table = document.createElement('table');
     table.className = 'data-table';
-    table.innerHTML = `
-      <thead>
-        <tr><th></th><th>Make</th><th>Model</th><th>Year</th><th>Status</th><th>Purchase Price</th><th>Mileage</th><th></th></tr>
-      </thead>
-    `;
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    headRow.appendChild(document.createElement('th'));
+    const SORT_COLUMNS = [
+      ['make', 'Make'],
+      ['model', 'Model'],
+      ['year', 'Year'],
+      ['status', 'Status'],
+      ['purchasePrice', 'Purchase Price'],
+      ['mileage', 'Mileage'],
+    ];
+    SORT_COLUMNS.forEach(([key, label]) => {
+      headRow.appendChild(
+        Helpers.sortableHeader(label, key, state.sort, (clickedKey) => {
+          if (state.sort.key === clickedKey) {
+            state.sort.dir *= -1;
+          } else {
+            state.sort = { key: clickedKey, dir: 1 };
+          }
+          renderRows();
+        })
+      );
+    });
+    headRow.appendChild(document.createElement('th'));
+    thead.appendChild(headRow);
+    table.appendChild(thead);
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     tableWrap.appendChild(table);
@@ -402,8 +425,22 @@
     const emptyWrap = document.createElement('div');
     wrap.appendChild(emptyWrap);
 
+    const pagination = document.createElement('div');
+    pagination.className = 'pagination hidden';
+    wrap.appendChild(pagination);
+
+    const SORT_GETTERS = {
+      make: (c) => c.make || '',
+      model: (c) => c.model || '',
+      year: (c) => Number(c.year) || 0,
+      status: (c) => Helpers.statusLabel(c.status),
+      purchasePrice: (c) => Number(c.purchasePrice) || 0,
+      mileage: (c) => Number(c.mileage) || 0,
+    };
+    const PAGE_SIZE = 20;
+
     function applyFilters() {
-      return allCars.filter((c) => {
+      const filtered = allCars.filter((c) => {
         if (state.filter !== 'all' && c.status !== state.filter) return false;
         if (state.search) {
           const q = state.search.toLowerCase();
@@ -412,14 +449,27 @@
         }
         return true;
       });
+      if (state.sort.key) {
+        const getter = SORT_GETTERS[state.sort.key];
+        filtered.sort((a, b) => Helpers.compareValues(getter(a), getter(b)) * state.sort.dir);
+      }
+      return filtered;
     }
 
     function renderRows() {
-      const cars = applyFilters();
+      // Rebuild header sort-arrow indicators to reflect the current state.
+      headRow.querySelectorAll('.th-sort-btn').forEach((btn, idx) => {
+        const [key, label] = SORT_COLUMNS[idx];
+        const arrow = state.sort.key === key ? (state.sort.dir === 1 ? ' ▲' : ' ▼') : '';
+        btn.textContent = label + arrow;
+      });
+
+      const filtered = applyFilters();
 
       emptyWrap.innerHTML = '';
-      if (cars.length === 0) {
+      if (filtered.length === 0) {
         tableWrap.classList.add('hidden');
+        pagination.classList.add('hidden');
         emptyWrap.appendChild(
           Helpers.emptyState(
             allCars.length === 0
@@ -431,8 +481,43 @@
       }
       tableWrap.classList.remove('hidden');
 
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      if (state.page > totalPages) state.page = totalPages;
+      const pageStart = (state.page - 1) * PAGE_SIZE;
+      const cars = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+      pagination.innerHTML = '';
+      if (totalPages > 1) {
+        pagination.classList.remove('hidden');
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.textContent = 'Previous';
+        prevBtn.disabled = state.page === 1;
+        prevBtn.addEventListener('click', () => {
+          state.page -= 1;
+          renderRows();
+        });
+        const label = document.createElement('span');
+        label.textContent = `Page ${state.page} of ${totalPages}`;
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.textContent = 'Next';
+        nextBtn.disabled = state.page === totalPages;
+        nextBtn.addEventListener('click', () => {
+          state.page += 1;
+          renderRows();
+        });
+        pagination.appendChild(prevBtn);
+        pagination.appendChild(label);
+        pagination.appendChild(nextBtn);
+      } else {
+        pagination.classList.add('hidden');
+      }
+
       tbody.innerHTML = '';
       cars.forEach((c) => {
+        const days = Helpers.daysInStock(c);
+        const isAging = c.status !== 'sold' && days !== null && days >= Helpers.AGING_THRESHOLD_DAYS;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${
@@ -446,7 +531,10 @@
           <td>${Helpers.escapeHtml(c.make)}</td>
           <td>${Helpers.escapeHtml(c.model)}</td>
           <td>${Helpers.escapeHtml(c.year)}</td>
-          <td><span class="status-badge status-${c.status}">${Helpers.statusLabel(c.status)}</span></td>
+          <td>
+            <span class="status-badge status-${c.status}">${Helpers.statusLabel(c.status)}</span>
+            ${isAging ? `<span class="aging-note">${days} days in stock</span>` : ''}
+          </td>
           <td>${Helpers.formatCurrency(c.purchasePrice)}</td>
           <td>${c.mileage ? Number(c.mileage).toLocaleString() : '—'}</td>
           <td class="row-actions"></td>

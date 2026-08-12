@@ -62,6 +62,19 @@
     });
   }
 
+  const AGING_THRESHOLD_DAYS = 60;
+
+  // Days a still-owned car has been held since its purchase date, or
+  // null if there's no purchase date to measure from.
+  function daysInStock(car) {
+    if (!car.purchaseDate) return null;
+    const [y, m, d] = car.purchaseDate.split('-').map(Number);
+    const purchased = new Date(y, m - 1, d);
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return Math.floor((startOfToday - purchased) / (1000 * 60 * 60 * 24));
+  }
+
   const MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
@@ -129,9 +142,32 @@
     URL.revokeObjectURL(url);
   }
 
+  // Shared comparator for sortable table columns: numbers compare
+  // numerically, everything else compares as case-insensitive text.
+  function compareValues(a, b) {
+    if (typeof a === 'number' && typeof b === 'number') return a - b;
+    return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+  }
+
+  // Builds a clickable <th> for a sortable table: shows an ascending/
+  // descending arrow when it's the active sort column, and calls
+  // onClick(key) so the caller can update its sort state and re-render.
+  function sortableHeader(label, key, sortState, onClick) {
+    const th = document.createElement('th');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'th-sort-btn';
+    const arrow = sortState.key === key ? (sortState.dir === 1 ? ' ▲' : ' ▼') : '';
+    btn.textContent = label + arrow;
+    btn.addEventListener('click', () => onClick(key));
+    th.appendChild(btn);
+    return th;
+  }
+
   window.Helpers = {
     formatCurrency, escapeHtml, saleProfit, emptyState, statusLabel,
     todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
     MONTH_NAMES, yearOptionsForDates, iconButton, toCsv, downloadCsv,
+    AGING_THRESHOLD_DAYS, daysInStock, compareValues, sortableHeader,
   };
 })();
