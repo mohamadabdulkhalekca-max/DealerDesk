@@ -9,18 +9,18 @@
     { key: 'mileage', label: 'Mileage', type: 'number', required: false },
     { key: 'purchasePrice', label: 'Purchase Price', type: 'number', required: true },
     { key: 'purchaseDate', label: 'Purchase Date', type: 'date', required: false },
-    { key: 'status', label: 'Status', type: 'select', required: false,
+    { key: 'status', label: 'Status', type: 'select', required: false, wide: true,
       options: [
         { value: 'in_stock', label: 'In Stock' },
         { value: 'reserved', label: 'Reserved' },
         { value: 'sold', label: 'Sold' },
       ] },
-    { key: 'notes', label: 'Notes', type: 'textarea', required: false },
+    { key: 'notes', label: 'Notes', type: 'textarea', required: false, wide: true },
   ];
 
   function buildFormField(field, car) {
     const wrap = document.createElement('label');
-    wrap.className = 'form-field';
+    wrap.className = field.wide ? 'form-field form-field-wide' : 'form-field';
     wrap.textContent = field.label + (field.required ? ' *' : '');
 
     let input;
@@ -48,55 +48,78 @@
   }
 
   function buildPhotoField(car) {
-    const state = { file: null, removed: false };
+    // keptExisting: photo URLs already on the car that the user hasn't
+    // removed. newFiles: photos picked in this session, not yet uploaded.
+    const state = {
+      keptExisting: car && car.photoUrls ? [...car.photoUrls] : [],
+      newFiles: [],
+    };
 
     const wrap = document.createElement('div');
-    wrap.className = 'photo-field';
+    wrap.className = 'photo-field form-field-wide';
 
-    const preview = document.createElement('img');
-    preview.className = 'photo-preview';
-    preview.alt = 'Car photo';
-    if (car && car.photoUrl) {
-      preview.src = car.photoUrl;
-    } else {
-      preview.classList.add('hidden');
-    }
-    wrap.appendChild(preview);
-
-    const controls = document.createElement('div');
-    controls.className = 'photo-controls';
+    const grid = document.createElement('div');
+    grid.className = 'photo-grid';
+    wrap.appendChild(grid);
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    controls.appendChild(fileInput);
+    fileInput.multiple = true;
+    fileInput.className = 'hidden';
+    wrap.appendChild(fileInput);
 
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.textContent = 'Remove Photo';
-    if (!(car && car.photoUrl)) removeBtn.classList.add('hidden');
-    controls.appendChild(removeBtn);
+    const addTile = document.createElement('button');
+    addTile.type = 'button';
+    addTile.className = 'photo-add-tile';
+    addTile.textContent = '+ Add Photo';
+    addTile.addEventListener('click', () => fileInput.click());
+
+    function photoThumb(url, onRemove) {
+      const box = document.createElement('div');
+      box.className = 'photo-thumb';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      box.appendChild(img);
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'photo-thumb-remove';
+      removeBtn.textContent = '×';
+      removeBtn.setAttribute('aria-label', 'Remove photo');
+      removeBtn.addEventListener('click', onRemove);
+      box.appendChild(removeBtn);
+      return box;
+    }
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      state.keptExisting.forEach((url, idx) => {
+        grid.appendChild(
+          photoThumb(url, () => {
+            state.keptExisting.splice(idx, 1);
+            renderGrid();
+          })
+        );
+      });
+      state.newFiles.forEach((file, idx) => {
+        grid.appendChild(
+          photoThumb(URL.createObjectURL(file), () => {
+            state.newFiles.splice(idx, 1);
+            renderGrid();
+          })
+        );
+      });
+      grid.appendChild(addTile);
+    }
 
     fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      state.file = file;
-      state.removed = false;
-      preview.src = URL.createObjectURL(file);
-      preview.classList.remove('hidden');
-      removeBtn.classList.remove('hidden');
-    });
-
-    removeBtn.addEventListener('click', () => {
-      state.file = null;
-      state.removed = true;
+      state.newFiles.push(...Array.from(fileInput.files));
       fileInput.value = '';
-      preview.removeAttribute('src');
-      preview.classList.add('hidden');
-      removeBtn.classList.add('hidden');
+      renderGrid();
     });
 
-    wrap.appendChild(controls);
+    renderGrid();
     return { element: wrap, state };
   }
 
@@ -154,17 +177,17 @@
       if (!data.status) data.status = 'in_stock';
 
       saveBtn.disabled = true;
-      if (photo.state.file) {
-        try {
-          data.photoUrl = await Storage.uploadCarPhoto(photo.state.file);
-        } catch (err) {
-          errorMsg.textContent = err.message;
-          errorMsg.classList.remove('hidden');
-          saveBtn.disabled = false;
-          return;
+      try {
+        const uploaded = [];
+        for (const file of photo.state.newFiles) {
+          uploaded.push(await Storage.uploadCarPhoto(file));
         }
-      } else if (photo.state.removed) {
-        data.photoUrl = null;
+        data.photoUrls = [...photo.state.keptExisting, ...uploaded];
+      } catch (err) {
+        errorMsg.textContent = err.message;
+        errorMsg.classList.remove('hidden');
+        saveBtn.disabled = false;
+        return;
       }
 
       try {
@@ -287,8 +310,11 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${
-            c.photoUrl
-              ? `<img class="table-thumb" alt="" src="${Helpers.escapeHtml(c.photoUrl)}">`
+            c.photoUrls && c.photoUrls.length
+              ? `<div class="table-thumb-wrap">
+                   <img class="table-thumb" alt="" src="${Helpers.escapeHtml(c.photoUrls[0])}">
+                   ${c.photoUrls.length > 1 ? `<span class="table-thumb-count">+${c.photoUrls.length - 1}</span>` : ''}
+                 </div>`
               : '<div class="table-thumb table-thumb-empty"></div>'
           }</td>
           <td>${Helpers.escapeHtml(c.make)}</td>

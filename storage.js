@@ -20,7 +20,7 @@
       purchaseDate: row.purchase_date,
       status: row.status,
       notes: row.notes,
-      photoUrl: row.photo_url,
+      photoUrls: row.photo_urls || [],
     };
   }
 
@@ -36,7 +36,7 @@
     if (car.purchaseDate !== undefined) row.purchase_date = car.purchaseDate || null;
     if (car.status !== undefined) row.status = car.status;
     if (car.notes !== undefined) row.notes = car.notes || null;
-    if (car.photoUrl !== undefined) row.photo_url = car.photoUrl || null;
+    if (car.photoUrls !== undefined) row.photo_urls = car.photoUrls || [];
     return row;
   }
 

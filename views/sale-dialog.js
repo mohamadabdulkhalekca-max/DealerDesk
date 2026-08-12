@@ -59,7 +59,7 @@
     }
 
     const carLabelEl = document.createElement('label');
-    carLabelEl.className = 'form-field';
+    carLabelEl.className = 'form-field form-field-wide';
     carLabelEl.textContent = 'Car *';
     const carSelect = document.createElement('select');
     carSelect.name = 'carId';
@@ -116,7 +116,7 @@
     form.appendChild(saleDateLabel);
 
     const paymentLabel = document.createElement('label');
-    paymentLabel.className = 'form-field';
+    paymentLabel.className = 'form-field form-field-wide';
     paymentLabel.textContent = 'Payment Status';
     const paymentSelect = document.createElement('select');
     paymentSelect.name = 'paymentStatus';
@@ -134,7 +134,7 @@
     form.appendChild(paymentLabel);
 
     const notesLabel = document.createElement('label');
-    notesLabel.className = 'form-field';
+    notesLabel.className = 'form-field form-field-wide';
     notesLabel.textContent = 'Notes';
     const notesInput = document.createElement('textarea');
     notesInput.name = 'notes';
