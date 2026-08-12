@@ -84,9 +84,30 @@
     return years;
   }
 
+  // Inline SVG icons for compact row-action buttons — no icon font/CDN
+  // dependency. currentColor lets each button's text color (e.g. the
+  // red on .danger buttons) tint the icon automatically.
+  const ICON_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+  const icons = {
+    receipt: `<svg ${ICON_ATTRS}><path d="M6 2h12v19l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5V2z"/><line x1="8.5" y1="7" x2="15.5" y2="7"/><line x1="8.5" y1="11" x2="15.5" y2="11"/><line x1="8.5" y1="15" x2="12.5" y2="15"/></svg>`,
+    edit: `<svg ${ICON_ATTRS}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`,
+    delete: `<svg ${ICON_ATTRS}><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+    sell: `<svg ${ICON_ATTRS}><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>`,
+  };
+
+  function iconButton(iconName, label, extraClass) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = extraClass ? `icon-btn ${extraClass}` : 'icon-btn';
+    btn.innerHTML = icons[iconName];
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    return btn;
+  }
+
   window.Helpers = {
     formatCurrency, escapeHtml, saleProfit, emptyState, statusLabel,
     todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
-    MONTH_NAMES, yearOptionsForDates,
+    MONTH_NAMES, yearOptionsForDates, iconButton,
   };
 })();

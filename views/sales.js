@@ -236,8 +236,7 @@
           <td class="row-actions"></td>
         `;
         const actionsCell = tr.querySelector('.row-actions');
-        const receiptBtn = document.createElement('button');
-        receiptBtn.textContent = 'Receipt';
+        const receiptBtn = Helpers.iconButton('receipt', 'Receipt');
         receiptBtn.addEventListener('click', async () => {
           receiptBtn.disabled = true;
           try {
@@ -251,12 +250,9 @@
             receiptBtn.disabled = false;
           }
         });
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
+        const editBtn = Helpers.iconButton('edit', 'Edit');
         editBtn.addEventListener('click', () => SaleDialog.open(s, { onSaved: reload }));
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'danger';
-        deleteBtn.textContent = 'Delete';
+        const deleteBtn = Helpers.iconButton('delete', 'Delete', 'danger');
         deleteBtn.addEventListener('click', async () => {
           if (!confirm(`Delete this sale to ${s.buyerName}?`)) return;
           try {

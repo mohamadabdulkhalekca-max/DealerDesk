@@ -423,19 +423,15 @@
         }
         const actionsCell = tr.querySelector('.row-actions');
         if (c.status !== 'sold') {
-          const sellBtn = document.createElement('button');
-          sellBtn.textContent = 'Sell';
+          const sellBtn = Helpers.iconButton('sell', 'Sell');
           sellBtn.addEventListener('click', () =>
             SaleDialog.open(null, { onSaved: reload, presetCarId: c.id })
           );
           actionsCell.appendChild(sellBtn);
         }
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
+        const editBtn = Helpers.iconButton('edit', 'Edit');
         editBtn.addEventListener('click', () => openCarDialog(c, reload));
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'danger';
-        deleteBtn.textContent = 'Delete';
+        const deleteBtn = Helpers.iconButton('delete', 'Delete', 'danger');
         deleteBtn.addEventListener('click', async () => {
           if (!confirm(`Delete ${c.year} ${c.make} ${c.model}?`)) return;
           try {
