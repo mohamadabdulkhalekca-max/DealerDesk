@@ -3,10 +3,26 @@
 --
 -- Safe to run even if you already applied an earlier version of this file
 -- that added a single `photo_url` column — this script is idempotent, and
--- that old column is just left behind, unused. You can optionally drop it
--- afterwards with: alter table public.cars drop column if exists photo_url;
+-- carries forward any photo already stored in that column (see the
+-- backfill below). You can optionally drop the old column afterwards
+-- with: alter table public.cars drop column if exists photo_url;
 
 alter table public.cars add column if not exists photo_urls text[] not null default '{}';
+
+-- Backfill: if an earlier single-photo version of this script ran and
+-- some cars have `photo_url` set, carry it into the new array column so
+-- those photos don't silently disappear from the app.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'cars' and column_name = 'photo_url'
+  ) then
+    update public.cars
+    set photo_urls = array[photo_url]
+    where photo_url is not null and coalesce(array_length(photo_urls, 1), 0) = 0;
+  end if;
+end $$;
 
 -- Public bucket: photos are served directly via public URL (read access
 -- doesn't need auth), but only the signed-in owner can upload/replace/delete

@@ -102,9 +102,13 @@
           })
         );
       });
-      state.newFiles.forEach((file, idx) => {
+      // Each entry's object URL is created once (in the change handler
+      // below) and reused here — creating a fresh one on every render
+      // would leak a blob URL per re-render, never revoked.
+      state.newFiles.forEach((entry, idx) => {
         grid.appendChild(
-          photoThumb(URL.createObjectURL(file), () => {
+          photoThumb(entry.previewUrl, () => {
+            URL.revokeObjectURL(entry.previewUrl);
             state.newFiles.splice(idx, 1);
             renderGrid();
           })
@@ -114,13 +118,15 @@
     }
 
     fileInput.addEventListener('change', () => {
-      state.newFiles.push(...Array.from(fileInput.files));
+      Array.from(fileInput.files).forEach((file) => {
+        state.newFiles.push({ file, previewUrl: URL.createObjectURL(file) });
+      });
       fileInput.value = '';
       renderGrid();
     });
 
     renderGrid();
-    return { element: wrap, state };
+    return { element: wrap, state, refresh: renderGrid };
   }
 
   function openCarDialog(car, onSaved) {
@@ -177,18 +183,37 @@
       if (!data.status) data.status = 'in_stock';
 
       saveBtn.disabled = true;
-      try {
-        const uploaded = [];
-        for (const file of photo.state.newFiles) {
-          uploaded.push(await Storage.uploadCarPhoto(file));
+      if (photo.state.newFiles.length > 0) {
+        const pending = photo.state.newFiles;
+        const results = await Promise.allSettled(
+          pending.map((entry) => Storage.uploadCarPhoto(entry.file))
+        );
+
+        // Move only the successful uploads out of newFiles, so a retry
+        // (clicking Save again after fixing the error) doesn't re-upload
+        // files that already succeeded as new, orphaned storage objects.
+        const stillPending = [];
+        const failures = [];
+        results.forEach((result, idx) => {
+          if (result.status === 'fulfilled') {
+            photo.state.keptExisting.push(result.value);
+            URL.revokeObjectURL(pending[idx].previewUrl);
+          } else {
+            stillPending.push(pending[idx]);
+            failures.push(result.reason.message || String(result.reason));
+          }
+        });
+        photo.state.newFiles = stillPending;
+
+        if (failures.length > 0) {
+          photo.refresh();
+          errorMsg.textContent = `Failed to upload ${failures.length} photo(s): ${failures[0]}`;
+          errorMsg.classList.remove('hidden');
+          saveBtn.disabled = false;
+          return;
         }
-        data.photoUrls = [...photo.state.keptExisting, ...uploaded];
-      } catch (err) {
-        errorMsg.textContent = err.message;
-        errorMsg.classList.remove('hidden');
-        saveBtn.disabled = false;
-        return;
       }
+      data.photoUrls = [...photo.state.keptExisting];
 
       try {
         await Storage.saveCar(data);
@@ -205,7 +230,10 @@
 
     dialog.appendChild(form);
     document.body.appendChild(dialog);
-    dialog.addEventListener('close', () => dialog.remove());
+    dialog.addEventListener('close', () => {
+      photo.state.newFiles.forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
+      dialog.remove();
+    });
     dialog.showModal();
   }
 
