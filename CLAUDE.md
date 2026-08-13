@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Auto-commit/push:** when a task is done, automatically `git add`/`commit`/`push` the necessary changes to `origin` without asking first.
+
 ## What this is
 
 Car Trader Manager — a single-user web app for a car trader to track vehicle inventory and sales, backed by Supabase (Postgres + Auth + Storage). Plain HTML/CSS/JS, no build tools, no framework, no npm/package.json.
