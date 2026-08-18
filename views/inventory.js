@@ -18,7 +18,7 @@
     closeBtn.type = 'button';
     closeBtn.className = 'photo-viewer-close';
     closeBtn.textContent = '×';
-    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.setAttribute('aria-label', I18n.t('common.close'));
     closeBtn.addEventListener('click', () => dialog.close());
     content.appendChild(closeBtn);
 
@@ -34,7 +34,7 @@
       prevBtn.type = 'button';
       prevBtn.className = 'photo-viewer-nav photo-viewer-prev';
       prevBtn.textContent = '‹';
-      prevBtn.setAttribute('aria-label', 'Previous photo');
+      prevBtn.setAttribute('aria-label', I18n.t('photoViewer.previousPhoto'));
       prevBtn.addEventListener('click', () => show(index - 1));
       content.appendChild(prevBtn);
 
@@ -42,7 +42,7 @@
       nextBtn.type = 'button';
       nextBtn.className = 'photo-viewer-nav photo-viewer-next';
       nextBtn.textContent = '›';
-      nextBtn.setAttribute('aria-label', 'Next photo');
+      nextBtn.setAttribute('aria-label', I18n.t('photoViewer.nextPhoto'));
       nextBtn.addEventListener('click', () => show(index + 1));
       content.appendChild(nextBtn);
 
@@ -63,30 +63,32 @@
     show(startIndex);
   }
 
-  const FIELDS = [
-    { key: 'make', label: 'Make', type: 'text', required: true },
-    { key: 'model', label: 'Model', type: 'text', required: true },
-    { key: 'year', label: 'Year', type: 'number', required: true },
-    { key: 'vin', label: 'VIN', type: 'text', required: false },
-    { key: 'color', label: 'Color', type: 'text', required: false },
-    { key: 'mileage', label: 'Mileage', type: 'number', required: false },
-    { key: 'purchasePrice', label: 'Purchase Price', type: 'number', required: true },
-    { key: 'additionalCosts', label: 'Additional Costs (repairs, etc.)', type: 'number', required: false },
-    { key: 'askingPrice', label: 'Asking Price (for listings)', type: 'number', required: false },
-    { key: 'purchaseDate', label: 'Purchase Date', type: 'date', required: false },
-    { key: 'status', label: 'Status', type: 'select', required: false, wide: true,
-      options: [
-        { value: 'in_stock', label: 'In Stock' },
-        { value: 'reserved', label: 'Reserved' },
-        { value: 'sold', label: 'Sold' },
-      ] },
-    { key: 'notes', label: 'Notes', type: 'textarea', required: false, wide: true },
-  ];
+  function buildFields() {
+    return [
+      { key: 'make', labelKey: 'field.make', type: 'text', required: true },
+      { key: 'model', labelKey: 'field.model', type: 'text', required: true },
+      { key: 'year', labelKey: 'field.year', type: 'number', required: true },
+      { key: 'vin', labelKey: 'field.vin', type: 'text' },
+      { key: 'color', labelKey: 'field.color', type: 'text' },
+      { key: 'mileage', labelKey: 'field.mileage', type: 'number' },
+      { key: 'purchasePrice', labelKey: 'field.purchasePrice', type: 'number', required: true },
+      { key: 'additionalCosts', labelKey: 'field.additionalCosts', type: 'number' },
+      { key: 'askingPrice', labelKey: 'field.askingPrice', type: 'number' },
+      { key: 'purchaseDate', labelKey: 'field.purchaseDate', type: 'date' },
+      { key: 'status', labelKey: 'field.status', type: 'select', wide: true,
+        options: [
+          { value: 'in_stock', label: I18n.t('status.in_stock') },
+          { value: 'reserved', label: I18n.t('status.reserved') },
+          { value: 'sold', label: I18n.t('status.sold') },
+        ] },
+      { key: 'notes', labelKey: 'field.notes', type: 'textarea', wide: true },
+    ];
+  }
 
   function buildFormField(field, car) {
     const wrap = document.createElement('label');
     wrap.className = field.wide ? 'form-field form-field-wide' : 'form-field';
-    wrap.textContent = field.label + (field.required ? ' *' : '');
+    wrap.textContent = I18n.t(field.labelKey) + (field.required ? ' *' : '');
 
     let input;
     if (field.type === 'select') {
@@ -141,7 +143,7 @@
     const addTile = document.createElement('button');
     addTile.type = 'button';
     addTile.className = 'photo-add-tile';
-    addTile.textContent = '+ Add Photo';
+    addTile.textContent = I18n.t('inventory.addPhoto');
     addTile.addEventListener('click', () => fileInput.click());
 
     function photoThumb(url, onRemove) {
@@ -155,7 +157,7 @@
       removeBtn.type = 'button';
       removeBtn.className = 'photo-thumb-remove';
       removeBtn.textContent = '×';
-      removeBtn.setAttribute('aria-label', 'Remove photo');
+      removeBtn.setAttribute('aria-label', I18n.t('inventory.removePhoto'));
       removeBtn.addEventListener('click', onRemove);
       box.appendChild(removeBtn);
       return box;
@@ -200,6 +202,7 @@
   }
 
   function openCarDialog(car, onSaved) {
+    const fields = buildFields();
     const dialog = document.createElement('dialog');
     dialog.className = 'app-dialog';
 
@@ -208,13 +211,13 @@
     form.className = 'dialog-form';
 
     const h2 = document.createElement('h2');
-    h2.textContent = car ? 'Edit Car' : 'Add Car';
+    h2.textContent = I18n.t(car ? 'inventory.editCarTitle' : 'inventory.addCarTitle');
     form.appendChild(h2);
 
     const photo = buildPhotoField(car);
     form.appendChild(photo.element);
 
-    FIELDS.forEach((field) => form.appendChild(buildFormField(field, car)));
+    fields.forEach((field) => form.appendChild(buildFormField(field, car)));
 
     const errorMsg = document.createElement('div');
     errorMsg.className = 'form-error hidden';
@@ -224,12 +227,12 @@
     actions.className = 'dialog-actions';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = I18n.t('action.cancel');
     cancelBtn.addEventListener('click', () => dialog.close());
     const saveBtn = document.createElement('button');
     saveBtn.type = 'submit';
     saveBtn.className = 'primary';
-    saveBtn.textContent = 'Save';
+    saveBtn.textContent = I18n.t('action.save');
     actions.appendChild(cancelBtn);
     actions.appendChild(saveBtn);
     form.appendChild(actions);
@@ -238,12 +241,12 @@
       e.preventDefault();
       errorMsg.classList.add('hidden');
       const data = car ? { ...car } : {};
-      for (const field of FIELDS) {
+      for (const field of fields) {
         const input = form.elements[field.key];
         let value = input.value;
         if (field.type === 'number') value = value === '' ? '' : Number(value);
         if (field.required && (value === '' || value == null)) {
-          errorMsg.textContent = `${field.label} is required.`;
+          errorMsg.textContent = I18n.t('validation.fieldRequired', { field: I18n.t(field.labelKey) });
           errorMsg.classList.remove('hidden');
           input.focus();
           return;
@@ -296,7 +299,7 @@
       if (photo.state.removedExisting.length) {
         Promise.allSettled(photo.state.removedExisting.map((url) => Storage.deleteCarPhoto(url)));
       }
-      App.showToast(car ? 'Car updated' : 'Car added');
+      App.showToast(I18n.t(car ? 'toast.carUpdated' : 'toast.carAdded'));
       dialog.close();
       dialog.remove();
       onSaved();
@@ -322,34 +325,34 @@
     const header = document.createElement('div');
     header.className = 'page-header';
     const h1 = document.createElement('h1');
-    h1.textContent = 'Inventory';
+    h1.textContent = I18n.t('inventory.title');
     header.appendChild(h1);
 
     const headerActions = document.createElement('div');
     headerActions.className = 'header-actions';
     const exportBtn = document.createElement('button');
-    exportBtn.textContent = 'Export CSV';
+    exportBtn.textContent = I18n.t('inventory.exportCsv');
     exportBtn.addEventListener('click', () => {
       const columns = [
-        { key: 'make', label: 'Make' },
-        { key: 'model', label: 'Model' },
-        { key: 'year', label: 'Year' },
-        { key: 'vin', label: 'VIN' },
-        { key: 'color', label: 'Color' },
-        { key: 'mileage', label: 'Mileage' },
-        { key: 'purchasePrice', label: 'Purchase Price' },
-        { key: 'additionalCosts', label: 'Additional Costs' },
-        { key: 'askingPrice', label: 'Asking Price' },
-        { key: 'purchaseDate', label: 'Purchase Date' },
-        { key: 'status', label: 'Status' },
-        { key: 'notes', label: 'Notes' },
+        { key: 'make', label: I18n.t('field.make') },
+        { key: 'model', label: I18n.t('field.model') },
+        { key: 'year', label: I18n.t('field.year') },
+        { key: 'vin', label: I18n.t('field.vin') },
+        { key: 'color', label: I18n.t('field.color') },
+        { key: 'mileage', label: I18n.t('field.mileage') },
+        { key: 'purchasePrice', label: I18n.t('field.purchasePrice') },
+        { key: 'additionalCosts', label: I18n.t('field.additionalCosts') },
+        { key: 'askingPrice', label: I18n.t('field.askingPrice') },
+        { key: 'purchaseDate', label: I18n.t('field.purchaseDate') },
+        { key: 'status', label: I18n.t('field.status') },
+        { key: 'notes', label: I18n.t('field.notes') },
       ];
       Helpers.downloadCsv(`inventory-${Helpers.todayLocal()}.csv`, Helpers.toCsv(allCars, columns));
     });
     headerActions.appendChild(exportBtn);
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
-    addBtn.textContent = '+ Add Car';
+    addBtn.textContent = I18n.t('inventory.addCar');
     addBtn.addEventListener('click', () => openCarDialog(null, reload));
     headerActions.appendChild(addBtn);
     header.appendChild(headerActions);
@@ -359,7 +362,7 @@
     controls.className = 'toolbar';
     const searchInput = document.createElement('input');
     searchInput.type = 'search';
-    searchInput.placeholder = 'Search make, model, VIN…';
+    searchInput.placeholder = I18n.t('inventory.searchPlaceholder');
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value.trim();
       state.page = 1;
@@ -369,10 +372,10 @@
 
     const filterSelect = document.createElement('select');
     [
-      { value: 'all', label: 'All statuses' },
-      { value: 'in_stock', label: 'In Stock' },
-      { value: 'reserved', label: 'Reserved' },
-      { value: 'sold', label: 'Sold' },
+      { value: 'all', label: I18n.t('inventory.allStatuses') },
+      { value: 'in_stock', label: I18n.t('status.in_stock') },
+      { value: 'reserved', label: I18n.t('status.reserved') },
+      { value: 'sold', label: I18n.t('status.sold') },
     ].forEach((opt) => {
       const o = document.createElement('option');
       o.value = opt.value;
@@ -395,12 +398,12 @@
     const headRow = document.createElement('tr');
     headRow.appendChild(document.createElement('th'));
     const SORT_COLUMNS = [
-      ['make', 'Make'],
-      ['model', 'Model'],
-      ['year', 'Year'],
-      ['status', 'Status'],
-      ['purchasePrice', 'Purchase Price'],
-      ['mileage', 'Mileage'],
+      ['make', I18n.t('table.make')],
+      ['model', I18n.t('table.model')],
+      ['year', I18n.t('table.year')],
+      ['status', I18n.t('table.status')],
+      ['purchasePrice', I18n.t('table.purchasePrice')],
+      ['mileage', I18n.t('table.mileage')],
     ];
     SORT_COLUMNS.forEach(([key, label]) => {
       headRow.appendChild(
@@ -471,11 +474,7 @@
         tableWrap.classList.add('hidden');
         pagination.classList.add('hidden');
         emptyWrap.appendChild(
-          Helpers.emptyState(
-            allCars.length === 0
-              ? 'No cars yet — add your first one.'
-              : 'No cars match your search/filter.'
-          )
+          Helpers.emptyState(I18n.t(allCars.length === 0 ? 'inventory.noCarsYet' : 'inventory.noCarsMatch'))
         );
         return;
       }
@@ -491,17 +490,17 @@
         pagination.classList.remove('hidden');
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
-        prevBtn.textContent = 'Previous';
+        prevBtn.textContent = I18n.t('pagination.previous');
         prevBtn.disabled = state.page === 1;
         prevBtn.addEventListener('click', () => {
           state.page -= 1;
           renderRows();
         });
         const label = document.createElement('span');
-        label.textContent = `Page ${state.page} of ${totalPages}`;
+        label.textContent = I18n.t('pagination.pageOf', { page: state.page, total: totalPages });
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button';
-        nextBtn.textContent = 'Next';
+        nextBtn.textContent = I18n.t('pagination.next');
         nextBtn.disabled = state.page === totalPages;
         nextBtn.addEventListener('click', () => {
           state.page += 1;
@@ -533,7 +532,7 @@
           <td>${Helpers.escapeHtml(c.year)}</td>
           <td>
             <span class="status-badge status-${c.status}">${Helpers.statusLabel(c.status)}</span>
-            ${isAging ? `<span class="aging-note">${days} days in stock</span>` : ''}
+            ${isAging ? `<span class="aging-note">${I18n.t('dashboard.daysInStockCell', { days })}</span>` : ''}
           </td>
           <td>${Helpers.formatCurrency(c.purchasePrice)}</td>
           <td>${c.mileage ? Number(c.mileage).toLocaleString() : '—'}</td>
@@ -546,13 +545,13 @@
         }
         const actionsCell = tr.querySelector('.row-actions');
         if (c.status !== 'sold') {
-          const flyerBtn = Helpers.iconButton('flyer', 'Share For-Sale Flyer');
+          const flyerBtn = Helpers.iconButton('flyer', I18n.t('action.shareFlyer'));
           flyerBtn.addEventListener('click', async () => {
             flyerBtn.disabled = true;
             try {
               const result = await Flyer.shareFlyer(c);
               if (result.method === 'download') {
-                App.showInfo('Sharing isn’t available on this browser — the flyer PDF was downloaded instead.');
+                App.showInfo(I18n.t('sales.shareUnavailable'));
               }
             } catch (err) {
               App.showError(err.message);
@@ -562,24 +561,24 @@
           });
           actionsCell.appendChild(flyerBtn);
 
-          const sellBtn = Helpers.iconButton('sell', 'Sell');
+          const sellBtn = Helpers.iconButton('sell', I18n.t('action.sell'));
           sellBtn.addEventListener('click', () =>
             SaleDialog.open(null, { onSaved: reload, presetCarId: c.id })
           );
           actionsCell.appendChild(sellBtn);
         }
-        const editBtn = Helpers.iconButton('edit', 'Edit');
+        const editBtn = Helpers.iconButton('edit', I18n.t('action.edit'));
         editBtn.addEventListener('click', () => openCarDialog(c, reload));
-        const deleteBtn = Helpers.iconButton('delete', 'Delete', 'danger');
+        const deleteBtn = Helpers.iconButton('delete', I18n.t('action.delete'), 'danger');
         deleteBtn.addEventListener('click', async () => {
           const ok = await ConfirmDialog.open({
-            title: 'Delete car?',
-            message: `Delete ${c.year} ${c.make} ${c.model}? This can't be undone.`,
+            title: I18n.t('inventory.deleteCarTitle'),
+            message: I18n.t('inventory.deleteCarMessage', { name: `${c.year} ${c.make} ${c.model}` }),
           });
           if (!ok) return;
           try {
             await Storage.deleteCar(c.id);
-            App.showToast('Car deleted');
+            App.showToast(I18n.t('toast.carDeleted'));
             await reload();
           } catch (err) {
             App.showError(err.message);

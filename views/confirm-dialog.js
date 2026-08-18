@@ -4,7 +4,12 @@
  * Usage: const ok = await ConfirmDialog.open({ message: '...' });
  */
 (function () {
-  function open({ title = 'Are you sure?', message, confirmLabel = 'Delete', cancelLabel = 'Cancel' } = {}) {
+  function open({
+    title = I18n.t('confirm.areYouSure'),
+    message,
+    confirmLabel = I18n.t('action.delete'),
+    cancelLabel = I18n.t('action.cancel'),
+  } = {}) {
     return new Promise((resolve) => {
       let resolved = false;
       const settle = (value) => {

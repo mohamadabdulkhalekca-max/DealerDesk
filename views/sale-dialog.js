@@ -6,7 +6,7 @@
  */
 (function () {
   function carLabel(car) {
-    if (!car) return 'Unknown car';
+    if (!car) return I18n.t('common.unknownCar');
     return `${car.year} ${car.make} ${car.model}`;
   }
 
@@ -79,7 +79,7 @@
     form.className = 'dialog-form';
 
     const h2 = document.createElement('h2');
-    h2.textContent = sale ? 'Edit Sale' : 'Add Sale';
+    h2.textContent = I18n.t(sale ? 'saleDialog.editTitle' : 'saleDialog.addTitle');
     form.appendChild(h2);
 
     // --- Cart ---
@@ -88,7 +88,7 @@
 
     const cartLabel = document.createElement('div');
     cartLabel.className = 'cart-field-label';
-    cartLabel.textContent = 'Items *';
+    cartLabel.textContent = I18n.t('saleDialog.itemsLabel');
     cartField.appendChild(cartLabel);
 
     const itemsList = document.createElement('div');
@@ -107,7 +107,7 @@
       carSelect.innerHTML = '';
       const placeholder = document.createElement('option');
       placeholder.value = '';
-      placeholder.textContent = '+ Add a car…';
+      placeholder.textContent = I18n.t('saleDialog.addCarPlaceholder');
       carSelect.appendChild(placeholder);
       choices.forEach((c) => {
         const o = document.createElement('option');
@@ -122,12 +122,12 @@
       partSelect.innerHTML = '';
       const placeholder = document.createElement('option');
       placeholder.value = '';
-      placeholder.textContent = '+ Add a part…';
+      placeholder.textContent = I18n.t('saleDialog.addPartPlaceholder');
       partSelect.appendChild(placeholder);
       choices.forEach((p) => {
         const o = document.createElement('option');
         o.value = p.id;
-        o.textContent = `${p.name} (${remainingPartQty(p)} available)`;
+        o.textContent = `${p.name} (${I18n.t('saleDialog.availableSuffix', { count: remainingPartQty(p) })})`;
         partSelect.appendChild(o);
       });
     }
@@ -161,7 +161,7 @@
 
     function updateTotal() {
       const total = cart.reduce((sum, i) => sum + Number(i.unitPrice || 0) * Number(i.quantity || 1), 0);
-      totalLine.textContent = `Total: ${Helpers.formatCurrency(total)}`;
+      totalLine.textContent = I18n.t('saleDialog.total', { amount: Helpers.formatCurrency(total) });
     }
 
     function renderCart() {
@@ -169,7 +169,7 @@
       if (cart.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'cart-empty';
-        empty.textContent = 'No items added yet.';
+        empty.textContent = I18n.t('saleDialog.noItems');
         itemsList.appendChild(empty);
       }
 
@@ -180,7 +180,7 @@
         const label = document.createElement('div');
         label.className = 'cart-row-label';
         label.textContent =
-          item.itemType === 'car' ? carLabel(cars.find((c) => c.id === item.carId)) : (parts.find((p) => p.id === item.partId) || {}).name || 'Unknown part';
+          item.itemType === 'car' ? carLabel(cars.find((c) => c.id === item.carId)) : (parts.find((p) => p.id === item.partId) || {}).name || I18n.t('common.unknownPart');
         row.appendChild(label);
 
         if (item.itemType === 'part') {
@@ -189,7 +189,7 @@
           qtyInput.min = '1';
           qtyInput.className = 'cart-qty-input';
           qtyInput.value = item.quantity;
-          qtyInput.title = 'Quantity';
+          qtyInput.title = I18n.t('table.quantity');
           // 'input' fires on every keystroke (not just on blur, unlike
           // 'change') so the total updates live while typing — but it only
           // updates the total text, not the whole cart, so the input never
@@ -220,7 +220,7 @@
         priceInput.min = '0';
         priceInput.className = 'cart-price-input';
         priceInput.value = item.unitPrice;
-        priceInput.title = 'Unit price';
+        priceInput.title = I18n.t('field.unitPrice');
         priceInput.addEventListener('input', () => {
           item.unitPrice = Number(priceInput.value) || 0;
           updateTotal();
@@ -231,7 +231,7 @@
         removeBtn.type = 'button';
         removeBtn.className = 'cart-remove-btn';
         removeBtn.textContent = '×';
-        removeBtn.setAttribute('aria-label', 'Remove item');
+        removeBtn.setAttribute('aria-label', I18n.t('action.delete'));
         removeBtn.addEventListener('click', () => {
           cart.splice(idx, 1);
           renderCart();
@@ -251,7 +251,7 @@
     // --- Buyer / order fields ---
     const buyerNameLabel = document.createElement('label');
     buyerNameLabel.className = 'form-field';
-    buyerNameLabel.textContent = 'Buyer Name *';
+    buyerNameLabel.textContent = I18n.t('field.buyerName');
     const buyerNameInput = document.createElement('input');
     buyerNameInput.name = 'buyerName';
     buyerNameInput.required = true;
@@ -261,7 +261,7 @@
 
     const buyerContactLabel = document.createElement('label');
     buyerContactLabel.className = 'form-field';
-    buyerContactLabel.textContent = 'Buyer Contact';
+    buyerContactLabel.textContent = I18n.t('field.buyerContact');
     const buyerContactInput = document.createElement('input');
     buyerContactInput.name = 'buyerContact';
     if (sale) buyerContactInput.value = sale.buyerContact || '';
@@ -270,7 +270,7 @@
 
     const saleDateLabel = document.createElement('label');
     saleDateLabel.className = 'form-field';
-    saleDateLabel.textContent = 'Sale Date';
+    saleDateLabel.textContent = I18n.t('field.saleDate');
     const saleDateInput = document.createElement('input');
     saleDateInput.type = 'date';
     saleDateInput.name = 'saleDate';
@@ -280,12 +280,12 @@
 
     const paymentLabel = document.createElement('label');
     paymentLabel.className = 'form-field';
-    paymentLabel.textContent = 'Payment Status';
+    paymentLabel.textContent = I18n.t('field.paymentStatus');
     const paymentSelect = document.createElement('select');
     paymentSelect.name = 'paymentStatus';
     [
-      { value: 'paid', label: 'Paid' },
-      { value: 'pending', label: 'Pending' },
+      { value: 'paid', label: I18n.t('payment.paid') },
+      { value: 'pending', label: I18n.t('payment.pending') },
     ].forEach((opt) => {
       const o = document.createElement('option');
       o.value = opt.value;
@@ -298,7 +298,7 @@
 
     const notesLabel = document.createElement('label');
     notesLabel.className = 'form-field form-field-wide';
-    notesLabel.textContent = 'Notes';
+    notesLabel.textContent = I18n.t('field.notes');
     const notesInput = document.createElement('textarea');
     notesInput.name = 'notes';
     if (sale) notesInput.value = sale.notes || '';
@@ -313,12 +313,12 @@
     actions.className = 'dialog-actions';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = I18n.t('action.cancel');
     cancelBtn.addEventListener('click', () => dialog.close());
     const saveBtn = document.createElement('button');
     saveBtn.type = 'submit';
     saveBtn.className = 'primary';
-    saveBtn.textContent = 'Save';
+    saveBtn.textContent = I18n.t('action.save');
     actions.appendChild(cancelBtn);
     actions.appendChild(saveBtn);
     form.appendChild(actions);
@@ -329,13 +329,13 @@
 
       const buyerName = buyerNameInput.value.trim();
       if (!buyerName) {
-        errorMsg.textContent = 'Buyer Name is required.';
+        errorMsg.textContent = I18n.t('saleDialog.buyerNameRequired');
         errorMsg.classList.remove('hidden');
         buyerNameInput.focus();
         return;
       }
       if (cart.length === 0) {
-        errorMsg.textContent = 'Add at least one car or part to the sale.';
+        errorMsg.textContent = I18n.t('saleDialog.needOneItem');
         errorMsg.classList.remove('hidden');
         return;
       }
@@ -359,7 +359,7 @@
         saveBtn.disabled = false;
         return;
       }
-      App.showToast(sale ? 'Sale updated' : 'Sale recorded');
+      App.showToast(I18n.t(sale ? 'toast.saleUpdated' : 'toast.saleRecorded'));
       dialog.close();
       dialog.remove();
       if (onSaved) onSaved();

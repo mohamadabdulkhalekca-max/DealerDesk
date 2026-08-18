@@ -12,7 +12,7 @@
     card.className = 'login-card';
 
     const title = document.createElement('h1');
-    title.textContent = 'Car Trader Manager';
+    title.textContent = I18n.t('brand');
     card.appendChild(title);
 
     const subtitle = document.createElement('p');
@@ -25,14 +25,14 @@
 
     const emailInput = document.createElement('input');
     emailInput.type = 'email';
-    emailInput.placeholder = 'Email';
+    emailInput.placeholder = I18n.t('login.email');
     emailInput.required = true;
     emailInput.autocomplete = 'email';
     form.appendChild(emailInput);
 
     const pwInput = document.createElement('input');
     pwInput.type = 'password';
-    pwInput.placeholder = 'Password';
+    pwInput.placeholder = I18n.t('login.password');
     pwInput.required = true;
     form.appendChild(pwInput);
 
@@ -54,10 +54,9 @@
     form.appendChild(toggleBtn);
 
     function updateMode() {
-      subtitle.textContent = mode === 'signin' ? 'Sign in to continue' : 'Create your account';
-      submitBtn.textContent = mode === 'signin' ? 'Sign In' : 'Create Account';
-      toggleBtn.textContent =
-        mode === 'signin' ? "Don't have an account? Create one" : 'Already have an account? Sign in';
+      subtitle.textContent = I18n.t(mode === 'signin' ? 'login.signInSubtitle' : 'login.signUpSubtitle');
+      submitBtn.textContent = I18n.t(mode === 'signin' ? 'login.signIn' : 'login.createAccount');
+      toggleBtn.textContent = I18n.t(mode === 'signin' ? 'login.noAccount' : 'login.hasAccount');
       pwInput.autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
     }
     updateMode();
@@ -85,14 +84,14 @@
           onUnlock();
         } else {
           if (password.length < 6) {
-            throw new Error('Password must be at least 6 characters.');
+            throw new Error(I18n.t('login.passwordMinLength'));
           }
           const { data, error } = await Auth.signUp(email, password);
           if (error) throw error;
           if (data.session) {
             onUnlock();
           } else {
-            infoMsg.textContent = 'Account created — check your email to confirm it, then sign in.';
+            infoMsg.textContent = I18n.t('login.accountCreated');
             infoMsg.classList.remove('hidden');
             mode = 'signin';
             updateMode();

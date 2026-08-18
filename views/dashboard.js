@@ -51,35 +51,36 @@
     wrap.className = 'page';
 
     const h1 = document.createElement('h1');
-    h1.textContent = 'Dashboard';
+    h1.textContent = I18n.t('dashboard.title');
     wrap.appendChild(h1);
 
     const stats = document.createElement('div');
     stats.className = 'stats-grid';
-    stats.appendChild(statCard('Cars in Stock', inStock.length));
-    stats.appendChild(statCard('Parts in Stock (units)', partsInStockUnits));
-    stats.appendChild(statCard('Inventory Value', Helpers.formatCurrency(inventoryValue)));
-    stats.appendChild(statCard(`Aging (${Helpers.AGING_THRESHOLD_DAYS}+ days)`, agingCars.length));
+    stats.appendChild(statCard(I18n.t('dashboard.carsInStock'), inStock.length));
+    stats.appendChild(statCard(I18n.t('dashboard.partsInStock'), partsInStockUnits));
+    stats.appendChild(statCard(I18n.t('dashboard.inventoryValue'), Helpers.formatCurrency(inventoryValue)));
+    stats.appendChild(
+      statCard(I18n.t('dashboard.aging', { days: Helpers.AGING_THRESHOLD_DAYS }), agingCars.length)
+    );
     wrap.appendChild(stats);
 
     if (agingCars.length > 0) {
       const agingTitle = document.createElement('h2');
-      agingTitle.textContent = 'Aging Inventory';
+      agingTitle.textContent = I18n.t('dashboard.agingInventory');
       wrap.appendChild(agingTitle);
 
       const agingTableWrap = document.createElement('div');
       agingTableWrap.className = 'table-wrap';
       const agingTable = document.createElement('table');
       agingTable.className = 'data-table';
-      agingTable.innerHTML =
-        '<thead><tr><th>Car</th><th>Status</th><th>Days in Stock</th><th>Purchase Price</th></tr></thead>';
+      agingTable.innerHTML = `<thead><tr><th>${I18n.t('table.car')}</th><th>${I18n.t('table.status')}</th><th>${I18n.t('table.daysInStock')}</th><th>${I18n.t('table.purchasePrice')}</th></tr></thead>`;
       const agingBody = document.createElement('tbody');
       agingCars.forEach(({ car, days }) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${Helpers.escapeHtml(`${car.year} ${car.make} ${car.model}`)}</td>
           <td><span class="status-badge status-${car.status}">${Helpers.statusLabel(car.status)}</span></td>
-          <td>${days} days</td>
+          <td>${I18n.t('dashboard.daysInStockCell', { days })}</td>
           <td>${Helpers.formatCurrency(car.purchasePrice)}</td>
         `;
         agingBody.appendChild(tr);
@@ -90,7 +91,7 @@
     }
 
     const profitTitle = document.createElement('h2');
-    profitTitle.textContent = 'Profit by Period';
+    profitTitle.textContent = I18n.t('dashboard.profitByPeriod');
     wrap.appendChild(profitTitle);
 
     const picker = document.createElement('div');
@@ -100,11 +101,11 @@
     toggle.className = 'period-toggle';
     const monthBtn = document.createElement('button');
     monthBtn.type = 'button';
-    monthBtn.textContent = 'Month';
+    monthBtn.textContent = I18n.t('period.month');
     monthBtn.className = 'active';
     const dayBtn = document.createElement('button');
     dayBtn.type = 'button';
-    dayBtn.textContent = 'Day';
+    dayBtn.textContent = I18n.t('period.day');
     toggle.appendChild(monthBtn);
     toggle.appendChild(dayBtn);
     picker.appendChild(toggle);
@@ -113,7 +114,7 @@
     monthPicker.className = 'month-picker';
 
     const monthSelect = document.createElement('select');
-    Helpers.MONTH_NAMES.forEach((name, idx) => {
+    Helpers.monthNames().forEach((name, idx) => {
       const o = document.createElement('option');
       o.value = String(idx + 1).padStart(2, '0');
       o.textContent = name;
@@ -155,8 +156,7 @@
     tableWrap.className = 'table-wrap';
     const table = document.createElement('table');
     table.className = 'data-table';
-    table.innerHTML =
-      '<thead><tr><th>Items</th><th>Buyer</th><th>Total</th><th>Date</th><th>Profit</th></tr></thead>';
+    table.innerHTML = `<thead><tr><th>${I18n.t('table.items')}</th><th>${I18n.t('table.buyer')}</th><th>${I18n.t('table.total')}</th><th>${I18n.t('table.date')}</th><th>${I18n.t('table.profit')}</th></tr></thead>`;
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     tableWrap.appendChild(table);
@@ -177,15 +177,17 @@
       const profit = periodSales.reduce((sum, s) => sum + Helpers.saleProfit(s, cars, parts), 0);
 
       periodStats.innerHTML = '';
-      periodStats.appendChild(statCard(`Sales — ${periodLabel}`, periodSales.length));
-      periodStats.appendChild(statCard(`Profit — ${periodLabel}`, Helpers.formatCurrency(profit)));
+      periodStats.appendChild(statCard(I18n.t('dashboard.salesInPeriod', { period: periodLabel }), periodSales.length));
+      periodStats.appendChild(
+        statCard(I18n.t('dashboard.profitInPeriod', { period: periodLabel }), Helpers.formatCurrency(profit))
+      );
 
-      salesTitle.textContent = `Sales in ${periodLabel}`;
+      salesTitle.textContent = I18n.t('dashboard.salesInPeriod', { period: periodLabel });
 
       emptyWrap.innerHTML = '';
       if (periodSales.length === 0) {
         tableWrap.classList.add('hidden');
-        emptyWrap.appendChild(Helpers.emptyState('No sales in this period.'));
+        emptyWrap.appendChild(Helpers.emptyState(I18n.t('dashboard.noSalesInPeriod')));
         return;
       }
       tableWrap.classList.remove('hidden');

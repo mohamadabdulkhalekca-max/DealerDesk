@@ -96,6 +96,13 @@
       const qty = item.quantity || 1;
       const lineTotal = Number(item.unitPrice || 0) * qty;
       const labelLines = doc.splitTextToSize(label, itemColWidth);
+      const rowHeight = Math.max(16, labelLines.length * 13) + 10;
+
+      // Every line item gets a highlighted background band so the items
+      // stand out from the surrounding page instead of reading as plain
+      // table rows.
+      doc.setFillColor(...COLOR_BOX_BG);
+      doc.rect(marginX - 8, y - 12, contentWidth + 16, rowHeight, 'F');
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10.5);
@@ -104,7 +111,7 @@
       doc.text(String(qty), colQty, y, { align: 'right' });
       doc.text(Helpers.formatCurrency(item.unitPrice), colPrice, y, { align: 'right' });
       doc.text(Helpers.formatCurrency(lineTotal), colTotal, y, { align: 'right' });
-      y += Math.max(16, labelLines.length * 13) + 6;
+      y += rowHeight;
     });
 
     y += 4;

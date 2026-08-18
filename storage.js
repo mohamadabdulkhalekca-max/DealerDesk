@@ -54,6 +54,10 @@
       costPrice: row.cost_price,
       askingPrice: row.asking_price,
       notes: row.notes,
+      partType: row.part_type,
+      compatibleVehicle: row.compatible_vehicle,
+      grade: row.grade,
+      size: row.size,
     };
   }
 
@@ -66,6 +70,10 @@
     if (part.costPrice !== undefined) row.cost_price = part.costPrice === '' ? 0 : part.costPrice;
     if (part.askingPrice !== undefined) row.asking_price = part.askingPrice === '' ? null : part.askingPrice;
     if (part.notes !== undefined) row.notes = part.notes || null;
+    if (part.partType !== undefined) row.part_type = part.partType || null;
+    if (part.compatibleVehicle !== undefined) row.compatible_vehicle = part.compatibleVehicle || null;
+    if (part.grade !== undefined) row.grade = part.grade || null;
+    if (part.size !== undefined) row.size = part.size || null;
     return row;
   }
 
@@ -154,7 +162,7 @@
 
     const { error } = await db.from('cars').delete().eq('id', id);
     if (error) {
-      throw friendlyError(error, 'This car has a recorded sale — delete the sale first.');
+      throw friendlyError(error, I18n.t('error.carDeleteBlocked'));
     }
 
     if (existing && existing.photoUrls && existing.photoUrls.length) {
@@ -167,7 +175,7 @@
       data: { session },
     } = await db.auth.getSession();
     const userId = session && session.user && session.user.id;
-    if (!userId) throw new Error('You must be signed in to upload a photo.');
+    if (!userId) throw new Error(I18n.t('error.needSignInPhoto'));
 
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const path = `${userId}/${crypto.randomUUID()}.${ext}`;
@@ -221,7 +229,7 @@
   async function deletePart(id) {
     const { error } = await db.from('parts').delete().eq('id', id);
     if (error) {
-      throw friendlyError(error, 'This part has a recorded sale — delete the sale first.');
+      throw friendlyError(error, I18n.t('error.partDeleteBlocked'));
     }
   }
 
@@ -291,7 +299,7 @@
 
   async function saveSale(sale) {
     const items = sale.items || [];
-    if (items.length === 0) throw new Error('A sale needs at least one item.');
+    if (items.length === 0) throw new Error(I18n.t('error.needOneItem'));
 
     const row = saleToRow(sale);
     let savedHeader;

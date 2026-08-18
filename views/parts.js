@@ -1,26 +1,58 @@
 /** Parts view: auto parts/oils/tires inventory — quantity-based, unlike cars. */
 (function () {
-  const CATEGORY_OPTIONS = [
-    { value: 'oil', label: 'Oil' },
-    { value: 'tire', label: 'Tire' },
-    { value: 'part', label: 'Part' },
-    { value: 'other', label: 'Other' },
-  ];
+  function categoryOptions() {
+    return [
+      { value: 'oil', label: I18n.t('category.oil') },
+      { value: 'tire', label: I18n.t('category.tire') },
+      { value: 'part', label: I18n.t('category.part') },
+      { value: 'other', label: I18n.t('category.other') },
+    ];
+  }
 
-  const FIELDS = [
-    { key: 'name', label: 'Name', type: 'text', required: true },
-    { key: 'category', label: 'Category', type: 'select', required: false, options: CATEGORY_OPTIONS },
-    { key: 'sku', label: 'SKU', type: 'text', required: false },
-    { key: 'quantity', label: 'Quantity in Stock', type: 'number', required: true },
-    { key: 'costPrice', label: 'Cost Price (per unit)', type: 'number', required: true },
-    { key: 'askingPrice', label: 'Asking Price (per unit)', type: 'number', required: false },
-    { key: 'notes', label: 'Notes', type: 'textarea', required: false, wide: true },
-  ];
+  // Suggestions only (via <datalist>), not a closed enum — the trader can
+  // always type something else. Part-type names are localized since
+  // they're common category words; grade/size codes are the same
+  // alphanumeric strings regardless of language.
+  function partTypeOptions() {
+    return I18n.isRtl()
+      ? ['صدام', 'مصباح أمامي', 'مصباح خلفي', 'مرآة', 'باب', 'غطاء المحرك', 'رفرف', 'زجاج أمامي', 'تيل فرامل', 'قرص فرامل', 'بطارية', 'فلتر هواء', 'فلتر زيت', 'سير', 'رادياتير', 'دينامو', 'مارش', 'نظام تعليق', 'شكمان', 'جنط']
+      : ['Bumper', 'Headlight', 'Taillight', 'Mirror', 'Door', 'Hood', 'Fender', 'Windshield', 'Brake Pad', 'Brake Disc', 'Battery', 'Air Filter', 'Oil Filter', 'Belt', 'Radiator', 'Alternator', 'Starter Motor', 'Suspension', 'Exhaust', 'Wheel Rim'];
+  }
+
+  function oilGradeOptions() {
+    return ['0W-20', '5W-20', '5W-30', '5W-40', '10W-30', '10W-40', '15W-40', '20W-50'];
+  }
+
+  function tireSizeOptions() {
+    return ['185/65R15', '195/65R15', '205/55R16', '205/60R16', '215/55R17', '215/60R16', '225/45R17', '225/50R17', '225/55R17', '235/55R18', '235/60R18', '245/45R18', '265/60R18'];
+  }
+
+  function buildFields() {
+    return [
+      { key: 'name', labelKey: 'field.name', oilLabelKey: 'field.brand', type: 'text', required: true },
+      { key: 'category', labelKey: 'field.category', type: 'select', options: categoryOptions() },
+      { key: 'partType', labelKey: 'field.partType', type: 'datalist', options: partTypeOptions(), showFor: ['part'] },
+      { key: 'compatibleVehicle', labelKey: 'field.compatibleVehicle', type: 'text', showFor: ['part'] },
+      { key: 'grade', labelKey: 'field.grade', type: 'datalist', options: oilGradeOptions(), showFor: ['oil'] },
+      { key: 'size', labelKey: 'field.size', type: 'datalist', options: tireSizeOptions(), showFor: ['tire'] },
+      { key: 'sku', labelKey: 'field.sku', type: 'text' },
+      { key: 'quantity', labelKey: 'field.quantity', type: 'number', required: true },
+      { key: 'costPrice', labelKey: 'field.costPrice', type: 'number', required: true },
+      { key: 'askingPrice', labelKey: 'field.askingPricePerUnit', type: 'number' },
+      { key: 'notes', labelKey: 'field.notes', type: 'textarea', wide: true },
+    ];
+  }
+
+  let datalistCounter = 0;
 
   function buildFormField(field, part) {
     const wrap = document.createElement('label');
     wrap.className = field.wide ? 'form-field form-field-wide' : 'form-field';
-    wrap.textContent = field.label + (field.required ? ' *' : '');
+    if (field.showFor) wrap.dataset.showFor = field.showFor.join(' ');
+
+    const labelText = document.createElement('span');
+    labelText.className = 'form-field-label-text';
+    wrap.appendChild(labelText);
 
     let input;
     if (field.type === 'select') {
@@ -33,6 +65,19 @@
       });
     } else if (field.type === 'textarea') {
       input = document.createElement('textarea');
+    } else if (field.type === 'datalist') {
+      input = document.createElement('input');
+      input.type = 'text';
+      const listId = `dl-${field.key}-${datalistCounter++}`;
+      input.setAttribute('list', listId);
+      const datalist = document.createElement('datalist');
+      datalist.id = listId;
+      field.options.forEach((opt) => {
+        const o = document.createElement('option');
+        o.value = opt;
+        datalist.appendChild(o);
+      });
+      wrap.appendChild(datalist);
     } else {
       input = document.createElement('input');
       input.type = field.type;
@@ -44,10 +89,12 @@
     else if (field.key === 'quantity') input.value = 0;
 
     wrap.appendChild(input);
-    return wrap;
+    return { wrap, input, labelText, field };
   }
 
   function openPartDialog(part, onSaved) {
+    const fields = buildFields();
+
     const dialog = document.createElement('dialog');
     dialog.className = 'app-dialog';
 
@@ -56,10 +103,26 @@
     form.className = 'dialog-form';
 
     const h2 = document.createElement('h2');
-    h2.textContent = part ? 'Edit Part' : 'Add Part';
+    h2.textContent = I18n.t(part ? 'parts.editPartTitle' : 'parts.addPartTitle');
     form.appendChild(h2);
 
-    FIELDS.forEach((field) => form.appendChild(buildFormField(field, part)));
+    const built = fields.map((field) => buildFormField(field, part));
+    built.forEach(({ wrap }) => form.appendChild(wrap));
+
+    const nameField = built.find(({ field }) => field.key === 'name');
+    const categoryField = built.find(({ field }) => field.key === 'category');
+
+    function applyLabels() {
+      const category = categoryField.input.value;
+      built.forEach(({ wrap, labelText, field }) => {
+        const key = field.key === 'name' && category === 'oil' ? field.oilLabelKey : field.labelKey;
+        labelText.textContent = I18n.t(key) + (field.required ? ' *' : '');
+        if (field.showFor) wrap.classList.toggle('hidden', !field.showFor.includes(category));
+      });
+    }
+    applyLabels();
+    categoryField.input.addEventListener('change', applyLabels);
+    void nameField; // referenced above via built.find; kept for clarity
 
     const errorMsg = document.createElement('div');
     errorMsg.className = 'form-error hidden';
@@ -69,12 +132,12 @@
     actions.className = 'dialog-actions';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = I18n.t('action.cancel');
     cancelBtn.addEventListener('click', () => dialog.close());
     const saveBtn = document.createElement('button');
     saveBtn.type = 'submit';
     saveBtn.className = 'primary';
-    saveBtn.textContent = 'Save';
+    saveBtn.textContent = I18n.t('action.save');
     actions.appendChild(cancelBtn);
     actions.appendChild(saveBtn);
     form.appendChild(actions);
@@ -83,17 +146,19 @@
       e.preventDefault();
       errorMsg.classList.add('hidden');
       const data = part ? { ...part } : {};
-      for (const field of FIELDS) {
-        const input = form.elements[field.key];
+      for (const { field, input, wrap } of built) {
+        const hidden = wrap.classList.contains('hidden');
         let value = input.value;
         if (field.type === 'number') value = value === '' ? '' : Number(value);
-        if (field.required && (value === '' || value == null)) {
-          errorMsg.textContent = `${field.label} is required.`;
+        if (!hidden && field.required && (value === '' || value == null)) {
+          const category = categoryField.input.value;
+          const labelKey = field.key === 'name' && category === 'oil' ? field.oilLabelKey : field.labelKey;
+          errorMsg.textContent = I18n.t('validation.fieldRequired', { field: I18n.t(labelKey) });
           errorMsg.classList.remove('hidden');
           input.focus();
           return;
         }
-        data[field.key] = value;
+        data[field.key] = hidden ? '' : value;
       }
       if (!data.category) data.category = 'part';
 
@@ -106,7 +171,7 @@
         saveBtn.disabled = false;
         return;
       }
-      App.showToast(part ? 'Part updated' : 'Part added');
+      App.showToast(I18n.t(part ? 'toast.partUpdated' : 'toast.partAdded'));
       dialog.close();
       dialog.remove();
       onSaved();
@@ -116,6 +181,13 @@
     document.body.appendChild(dialog);
     dialog.addEventListener('close', () => dialog.remove());
     dialog.showModal();
+  }
+
+  function partDetails(p) {
+    if (p.category === 'oil') return p.grade || '';
+    if (p.category === 'tire') return p.size || '';
+    if (p.category === 'part') return [p.partType, p.compatibleVehicle].filter(Boolean).join(' · ');
+    return '';
   }
 
   async function render(root) {
@@ -129,29 +201,33 @@
     const header = document.createElement('div');
     header.className = 'page-header';
     const h1 = document.createElement('h1');
-    h1.textContent = 'Parts';
+    h1.textContent = I18n.t('parts.title');
     header.appendChild(h1);
 
     const headerActions = document.createElement('div');
     headerActions.className = 'header-actions';
     const exportBtn = document.createElement('button');
-    exportBtn.textContent = 'Export CSV';
+    exportBtn.textContent = I18n.t('inventory.exportCsv');
     exportBtn.addEventListener('click', () => {
       const columns = [
-        { key: 'name', label: 'Name' },
-        { key: 'category', label: 'Category' },
-        { key: 'sku', label: 'SKU' },
-        { key: 'quantity', label: 'Quantity' },
-        { key: 'costPrice', label: 'Cost Price' },
-        { key: 'askingPrice', label: 'Asking Price' },
-        { key: 'notes', label: 'Notes' },
+        { key: 'name', label: I18n.t('field.name') },
+        { key: 'category', label: I18n.t('field.category') },
+        { key: 'partType', label: I18n.t('field.partType') },
+        { key: 'compatibleVehicle', label: I18n.t('field.compatibleVehicle') },
+        { key: 'grade', label: I18n.t('field.grade') },
+        { key: 'size', label: I18n.t('field.size') },
+        { key: 'sku', label: I18n.t('field.sku') },
+        { key: 'quantity', label: I18n.t('table.quantity') },
+        { key: 'costPrice', label: I18n.t('table.costPrice') },
+        { key: 'askingPrice', label: I18n.t('table.askingPrice') },
+        { key: 'notes', label: I18n.t('field.notes') },
       ];
       Helpers.downloadCsv(`parts-${Helpers.todayLocal()}.csv`, Helpers.toCsv(allParts, columns));
     });
     headerActions.appendChild(exportBtn);
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
-    addBtn.textContent = '+ Add Part';
+    addBtn.textContent = I18n.t('parts.addPart');
     addBtn.addEventListener('click', () => openPartDialog(null, reload));
     headerActions.appendChild(addBtn);
     header.appendChild(headerActions);
@@ -161,7 +237,7 @@
     controls.className = 'toolbar';
     const searchInput = document.createElement('input');
     searchInput.type = 'search';
-    searchInput.placeholder = 'Search name, SKU…';
+    searchInput.placeholder = I18n.t('parts.searchPlaceholder');
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value.trim();
       state.page = 1;
@@ -170,7 +246,7 @@
     controls.appendChild(searchInput);
 
     const categorySelect = document.createElement('select');
-    [{ value: 'all', label: 'All categories' }, ...CATEGORY_OPTIONS].forEach((opt) => {
+    [{ value: 'all', label: I18n.t('parts.allCategories') }, ...categoryOptions()].forEach((opt) => {
       const o = document.createElement('option');
       o.value = opt.value;
       o.textContent = opt.label;
@@ -191,12 +267,12 @@
     const thead = document.createElement('thead');
     const headRow = document.createElement('tr');
     const SORT_COLUMNS = [
-      ['name', 'Name'],
-      ['category', 'Category'],
-      ['sku', 'SKU'],
-      ['quantity', 'Quantity'],
-      ['costPrice', 'Cost Price'],
-      ['askingPrice', 'Asking Price'],
+      ['name', I18n.t('table.name')],
+      ['category', I18n.t('table.category')],
+      ['sku', I18n.t('table.sku')],
+      ['quantity', I18n.t('table.quantity')],
+      ['costPrice', I18n.t('table.costPrice')],
+      ['askingPrice', I18n.t('table.askingPrice')],
     ];
     SORT_COLUMNS.forEach(([key, label]) => {
       headRow.appendChild(
@@ -266,11 +342,7 @@
         tableWrap.classList.add('hidden');
         pagination.classList.add('hidden');
         emptyWrap.appendChild(
-          Helpers.emptyState(
-            allParts.length === 0
-              ? 'No parts yet — add your first one.'
-              : 'No parts match your search/filter.'
-          )
+          Helpers.emptyState(I18n.t(allParts.length === 0 ? 'parts.noPartsYet' : 'parts.noPartsMatch'))
         );
         return;
       }
@@ -286,17 +358,17 @@
         pagination.classList.remove('hidden');
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
-        prevBtn.textContent = 'Previous';
+        prevBtn.textContent = I18n.t('pagination.previous');
         prevBtn.disabled = state.page === 1;
         prevBtn.addEventListener('click', () => {
           state.page -= 1;
           renderRows();
         });
         const label = document.createElement('span');
-        label.textContent = `Page ${state.page} of ${totalPages}`;
+        label.textContent = I18n.t('pagination.pageOf', { page: state.page, total: totalPages });
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button';
-        nextBtn.textContent = 'Next';
+        nextBtn.textContent = I18n.t('pagination.next');
         nextBtn.disabled = state.page === totalPages;
         nextBtn.addEventListener('click', () => {
           state.page += 1;
@@ -312,36 +384,40 @@
       tbody.innerHTML = '';
       parts.forEach((p) => {
         const outOfStock = Number(p.quantity) <= 0;
+        const details = partDetails(p);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${Helpers.escapeHtml(p.name)}</td>
+          <td>
+            ${Helpers.escapeHtml(p.name)}
+            ${details ? `<span class="aging-note" style="color: var(--text-muted)">${Helpers.escapeHtml(details)}</span>` : ''}
+          </td>
           <td><span class="status-badge status-part-${p.category}">${Helpers.partCategoryLabel(p.category)}</span></td>
           <td>${p.sku ? Helpers.escapeHtml(p.sku) : '—'}</td>
-          <td>${outOfStock ? '<span class="status-badge status-sold">Out of stock</span>' : p.quantity}</td>
+          <td>${outOfStock ? `<span class="status-badge status-sold">${I18n.t('parts.outOfStock')}</span>` : p.quantity}</td>
           <td>${Helpers.formatCurrency(p.costPrice)}</td>
           <td>${p.askingPrice != null ? Helpers.formatCurrency(p.askingPrice) : '—'}</td>
           <td class="row-actions"></td>
         `;
         const actionsCell = tr.querySelector('.row-actions');
         if (!outOfStock) {
-          const sellBtn = Helpers.iconButton('sell', 'Sell');
+          const sellBtn = Helpers.iconButton('sell', I18n.t('action.sell'));
           sellBtn.addEventListener('click', () =>
             SaleDialog.open(null, { onSaved: reload, presetPartId: p.id })
           );
           actionsCell.appendChild(sellBtn);
         }
-        const editBtn = Helpers.iconButton('edit', 'Edit');
+        const editBtn = Helpers.iconButton('edit', I18n.t('action.edit'));
         editBtn.addEventListener('click', () => openPartDialog(p, reload));
-        const deleteBtn = Helpers.iconButton('delete', 'Delete', 'danger');
+        const deleteBtn = Helpers.iconButton('delete', I18n.t('action.delete'), 'danger');
         deleteBtn.addEventListener('click', async () => {
           const ok = await ConfirmDialog.open({
-            title: 'Delete part?',
-            message: `Delete ${p.name}? This can't be undone.`,
+            title: I18n.t('parts.deletePartTitle'),
+            message: I18n.t('parts.deletePartMessage', { name: p.name }),
           });
           if (!ok) return;
           try {
             await Storage.deletePart(p.id);
-            App.showToast('Part deleted');
+            App.showToast(I18n.t('toast.partDeleted'));
             await reload();
           } catch (err) {
             App.showError(err.message);

@@ -30,10 +30,10 @@
   function itemLabel(item, cars, parts) {
     if (item.itemType === 'car') {
       const car = cars.find((c) => c.id === item.carId);
-      return car ? `${car.year} ${car.make} ${car.model}` : 'Unknown car';
+      return car ? `${car.year} ${car.make} ${car.model}` : I18n.t('common.unknownCar');
     }
     const part = parts.find((p) => p.id === item.partId);
-    return part ? part.name : 'Unknown part';
+    return part ? part.name : I18n.t('common.unknownPart');
   }
 
   function saleTotal(sale) {
@@ -59,11 +59,12 @@
       const label = itemLabel(item, cars, parts);
       return item.itemType === 'part' && item.quantity > 1 ? `${label} ×${item.quantity}` : label;
     });
-    return labels.length === 1 ? labels[0] : `${labels[0]} + ${labels.length - 1} more`;
+    if (labels.length === 1) return labels[0];
+    return `${labels[0]} ${I18n.t('common.plusNMore', { count: labels.length - 1 })}`;
   }
 
   function partCategoryLabel(category) {
-    return { oil: 'Oil', tire: 'Tire', part: 'Part', other: 'Other' }[category] || category;
+    return I18n.t(`category.${category}`);
   }
 
   function emptyState(message) {
@@ -74,7 +75,7 @@
   }
 
   function statusLabel(status) {
-    return { in_stock: 'In Stock', reserved: 'Reserved', sold: 'Sold' }[status] || status;
+    return I18n.t(`status.${status}`);
   }
 
   function pad2(n) {
@@ -92,7 +93,7 @@
 
   function formatMonthLabel(monthValue) {
     const [year, month] = monthValue.split('-').map(Number);
-    return new Date(year, month - 1, 1).toLocaleDateString(undefined, {
+    return new Date(year, month - 1, 1).toLocaleDateString(I18n.isRtl() ? 'ar' : undefined, {
       month: 'long',
       year: 'numeric',
     });
@@ -100,7 +101,7 @@
 
   function formatDayLabel(dayValue) {
     const [year, month, day] = dayValue.split('-').map(Number);
-    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    return new Date(year, month - 1, day).toLocaleDateString(I18n.isRtl() ? 'ar' : undefined, {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
@@ -120,10 +121,13 @@
     return Math.floor((startOfToday - purchased) / (1000 * 60 * 60 * 24));
   }
 
-  const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
+  // Localized month names for the Month/Year picker, via Intl rather than
+  // a hand-written Arabic list (regional naming conventions vary — the
+  // browser's own locale data handles that correctly).
+  function monthNames() {
+    const formatter = new Intl.DateTimeFormat(I18n.isRtl() ? 'ar' : 'en', { month: 'long' });
+    return Array.from({ length: 12 }, (_, i) => formatter.format(new Date(2000, i, 1)));
+  }
 
   // Native <input type="month"> has no picker UI in Safari, so month
   // selection is built from plain <select>s instead — this supplies the
@@ -214,7 +218,7 @@
     formatCurrency, escapeHtml, saleProfit, saleTotal, itemLabel, saleItemsSummary,
     emptyState, statusLabel, partCategoryLabel,
     todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
-    MONTH_NAMES, yearOptionsForDates, iconButton, toCsv, downloadCsv,
+    monthNames, yearOptionsForDates, iconButton, toCsv, downloadCsv,
     AGING_THRESHOLD_DAYS, daysInStock, compareValues, sortableHeader,
   };
 })();

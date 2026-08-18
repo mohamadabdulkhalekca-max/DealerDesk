@@ -53,13 +53,13 @@
     const header = document.createElement('div');
     header.className = 'page-header';
     const h1 = document.createElement('h1');
-    h1.textContent = 'Sales';
+    h1.textContent = I18n.t('sales.title');
     header.appendChild(h1);
 
     const headerActions = document.createElement('div');
     headerActions.className = 'header-actions';
     const exportBtn = document.createElement('button');
-    exportBtn.textContent = 'Export CSV';
+    exportBtn.textContent = I18n.t('inventory.exportCsv');
     exportBtn.addEventListener('click', () => {
       const rows = allSales.map((s) => ({
         items: Helpers.saleItemsSummary(s, allCars, allParts),
@@ -72,21 +72,21 @@
         notes: s.notes,
       }));
       const columns = [
-        { key: 'items', label: 'Items' },
-        { key: 'buyerName', label: 'Buyer Name' },
-        { key: 'buyerContact', label: 'Buyer Contact' },
-        { key: 'total', label: 'Total' },
-        { key: 'profit', label: 'Profit' },
-        { key: 'saleDate', label: 'Sale Date' },
-        { key: 'paymentStatus', label: 'Payment Status' },
-        { key: 'notes', label: 'Notes' },
+        { key: 'items', label: I18n.t('table.items') },
+        { key: 'buyerName', label: I18n.t('field.buyerName') },
+        { key: 'buyerContact', label: I18n.t('field.buyerContact') },
+        { key: 'total', label: I18n.t('table.total') },
+        { key: 'profit', label: I18n.t('table.profit') },
+        { key: 'saleDate', label: I18n.t('field.saleDate') },
+        { key: 'paymentStatus', label: I18n.t('field.paymentStatus') },
+        { key: 'notes', label: I18n.t('field.notes') },
       ];
       Helpers.downloadCsv(`sales-${Helpers.todayLocal()}.csv`, Helpers.toCsv(rows, columns));
     });
     headerActions.appendChild(exportBtn);
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
-    addBtn.textContent = '+ Add Sale';
+    addBtn.textContent = I18n.t('sales.addSale');
     addBtn.addEventListener('click', () => SaleDialog.open(null, { onSaved: reload }));
     headerActions.appendChild(addBtn);
     header.appendChild(headerActions);
@@ -96,7 +96,7 @@
     toolbar.className = 'toolbar';
     const searchInput = document.createElement('input');
     searchInput.type = 'search';
-    searchInput.placeholder = 'Search buyer, car, or part…';
+    searchInput.placeholder = I18n.t('sales.searchPlaceholder');
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value.trim();
       state.page = 1;
@@ -111,10 +111,10 @@
 
     const toggle = document.createElement('div');
     toggle.className = 'period-toggle';
-    const allBtn = toggleBtn('All', true);
-    const dayBtn = toggleBtn('Day');
-    const monthBtn = toggleBtn('Month');
-    const rangeBtn = toggleBtn('Range');
+    const allBtn = toggleBtn(I18n.t('period.all'), true);
+    const dayBtn = toggleBtn(I18n.t('period.day'));
+    const monthBtn = toggleBtn(I18n.t('period.month'));
+    const rangeBtn = toggleBtn(I18n.t('period.range'));
     [allBtn, dayBtn, monthBtn, rangeBtn].forEach((b) => toggle.appendChild(b));
     picker.appendChild(toggle);
 
@@ -127,7 +127,7 @@
     const monthPicker = document.createElement('div');
     monthPicker.className = 'month-picker hidden';
     const monthSelect = document.createElement('select');
-    Helpers.MONTH_NAMES.forEach((name, idx) => {
+    Helpers.monthNames().forEach((name, idx) => {
       const o = document.createElement('option');
       o.value = String(idx + 1).padStart(2, '0');
       o.textContent = name;
@@ -148,7 +148,7 @@
     rangeStartInput.value = state.rangeStart;
     const rangeToLabel = document.createElement('span');
     rangeToLabel.className = 'period-label';
-    rangeToLabel.textContent = 'to';
+    rangeToLabel.textContent = I18n.t('period.to');
     const rangeEndInput = document.createElement('input');
     rangeEndInput.type = 'date';
     rangeEndInput.value = state.rangeEnd;
@@ -170,12 +170,12 @@
     const thead = document.createElement('thead');
     const headRow = document.createElement('tr');
     const SORT_COLUMNS = [
-      ['items', 'Items'],
-      ['buyerName', 'Buyer'],
-      ['total', 'Total'],
-      ['profit', 'Profit'],
-      ['saleDate', 'Date'],
-      ['paymentStatus', 'Payment'],
+      ['items', I18n.t('table.items')],
+      ['buyerName', I18n.t('table.buyer')],
+      ['total', I18n.t('table.total')],
+      ['profit', I18n.t('table.profit')],
+      ['saleDate', I18n.t('table.date')],
+      ['paymentStatus', I18n.t('table.payment')],
     ];
     SORT_COLUMNS.forEach(([key, label]) => {
       headRow.appendChild(
@@ -215,10 +215,10 @@
     const PAGE_SIZE = 20;
 
     function periodLabel() {
-      if (state.periodType === 'all') return 'All Time';
+      if (state.periodType === 'all') return I18n.t('dashboard.allTime');
       if (state.periodType === 'day') return Helpers.formatDayLabel(state.day);
       if (state.periodType === 'month') return Helpers.formatMonthLabel(state.month);
-      return `${state.rangeStart} to ${state.rangeEnd}`;
+      return `${state.rangeStart} ${I18n.t('period.to')} ${state.rangeEnd}`;
     }
 
     function saleMatchesSearch(sale, q) {
@@ -310,8 +310,10 @@
       const label = periodLabel();
 
       periodStats.innerHTML = '';
-      periodStats.appendChild(statCard(`Sales — ${label}`, filtered.length));
-      periodStats.appendChild(statCard(`Profit — ${label}`, Helpers.formatCurrency(profit)));
+      periodStats.appendChild(statCard(I18n.t('dashboard.salesInPeriod', { period: label }), filtered.length));
+      periodStats.appendChild(
+        statCard(I18n.t('dashboard.profitInPeriod', { period: label }), Helpers.formatCurrency(profit))
+      );
 
       emptyWrap.innerHTML = '';
       if (filtered.length === 0) {
@@ -319,11 +321,13 @@
         pagination.classList.add('hidden');
         emptyWrap.appendChild(
           Helpers.emptyState(
-            allSales.length === 0
-              ? 'No sales recorded yet.'
-              : state.search
-              ? 'No sales match your search.'
-              : 'No sales in this period.'
+            I18n.t(
+              allSales.length === 0
+                ? 'sales.noSalesYet'
+                : state.search
+                ? 'sales.noSalesMatch'
+                : 'dashboard.noSalesInPeriod'
+            )
           )
         );
         return;
@@ -340,17 +344,17 @@
         pagination.classList.remove('hidden');
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
-        prevBtn.textContent = 'Previous';
+        prevBtn.textContent = I18n.t('pagination.previous');
         prevBtn.disabled = state.page === 1;
         prevBtn.addEventListener('click', () => {
           state.page -= 1;
           renderRows();
         });
         const pageLabel = document.createElement('span');
-        pageLabel.textContent = `Page ${state.page} of ${totalPages}`;
+        pageLabel.textContent = I18n.t('pagination.pageOf', { page: state.page, total: totalPages });
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button';
-        nextBtn.textContent = 'Next';
+        nextBtn.textContent = I18n.t('pagination.next');
         nextBtn.disabled = state.page === totalPages;
         nextBtn.addEventListener('click', () => {
           state.page += 1;
@@ -372,17 +376,17 @@
           <td>${Helpers.formatCurrency(Helpers.saleTotal(s))}</td>
           <td>${Helpers.formatCurrency(Helpers.saleProfit(s, allCars, allParts))}</td>
           <td>${Helpers.escapeHtml(s.saleDate)}</td>
-          <td><span class="status-badge status-${s.paymentStatus}">${s.paymentStatus === 'paid' ? 'Paid' : 'Pending'}</span></td>
+          <td><span class="status-badge status-${s.paymentStatus}">${I18n.t(s.paymentStatus === 'paid' ? 'payment.paid' : 'payment.pending')}</span></td>
           <td class="row-actions"></td>
         `;
         const actionsCell = tr.querySelector('.row-actions');
-        const receiptBtn = Helpers.iconButton('receipt', 'Receipt');
+        const receiptBtn = Helpers.iconButton('receipt', I18n.t('action.receipt'));
         receiptBtn.addEventListener('click', async () => {
           receiptBtn.disabled = true;
           try {
             const result = await Receipt.shareReceipt(s, allCars, allParts);
             if (result.method === 'download') {
-              App.showInfo('Sharing isn’t available on this browser — the receipt PDF was downloaded instead.');
+              App.showInfo(I18n.t('sales.shareUnavailable'));
             }
           } catch (err) {
             App.showError(err.message);
@@ -390,18 +394,18 @@
             receiptBtn.disabled = false;
           }
         });
-        const editBtn = Helpers.iconButton('edit', 'Edit');
+        const editBtn = Helpers.iconButton('edit', I18n.t('action.edit'));
         editBtn.addEventListener('click', () => SaleDialog.open(s, { onSaved: reload }));
-        const deleteBtn = Helpers.iconButton('delete', 'Delete', 'danger');
+        const deleteBtn = Helpers.iconButton('delete', I18n.t('action.delete'), 'danger');
         deleteBtn.addEventListener('click', async () => {
           const ok = await ConfirmDialog.open({
-            title: 'Delete sale?',
-            message: `Delete this sale to ${s.buyerName}? This can't be undone.`,
+            title: I18n.t('sales.deleteSaleTitle'),
+            message: I18n.t('sales.deleteSaleMessage', { name: s.buyerName }),
           });
           if (!ok) return;
           try {
             await Storage.deleteSale(s.id);
-            App.showToast('Sale deleted');
+            App.showToast(I18n.t('toast.saleDeleted'));
             await reload();
           } catch (err) {
             App.showError(err.message);
