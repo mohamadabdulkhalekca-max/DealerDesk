@@ -190,6 +190,19 @@
           qtyInput.className = 'cart-qty-input';
           qtyInput.value = item.quantity;
           qtyInput.title = 'Quantity';
+          // 'input' fires on every keystroke (not just on blur, unlike
+          // 'change') so the total updates live while typing — but it only
+          // updates the total text, not the whole cart, so the input never
+          // loses focus mid-type. Clamping to the available-stock max and
+          // re-syncing the "available" dropdown counts still happens on
+          // 'change' (blur, or the number input's spinner arrows).
+          qtyInput.addEventListener('input', () => {
+            const val = Number(qtyInput.value);
+            if (!Number.isNaN(val) && val > 0) {
+              item.quantity = val;
+              updateTotal();
+            }
+          });
           qtyInput.addEventListener('change', () => {
             const part = parts.find((p) => p.id === item.partId);
             const max = part ? effectivePartQty(part) - otherCartQtyForPart(item.partId, idx) : item.quantity;
@@ -208,7 +221,7 @@
         priceInput.className = 'cart-price-input';
         priceInput.value = item.unitPrice;
         priceInput.title = 'Unit price';
-        priceInput.addEventListener('change', () => {
+        priceInput.addEventListener('input', () => {
           item.unitPrice = Number(priceInput.value) || 0;
           updateTotal();
         });
