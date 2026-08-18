@@ -4,11 +4,12 @@
  * (or downloads it), same pattern as receipt.js.
  */
 (function () {
-  const COLOR_PRIMARY = [204, 75, 23];
-  const COLOR_PRIMARY_DARK = [166, 59, 17];
-  const COLOR_TEXT = [33, 28, 23];
-  const COLOR_TEXT_MUTED = [117, 108, 96];
-  const COLOR_BORDER = [229, 221, 208];
+  // Matches the app's CSS palette (styles.css :root), converted to RGB.
+  const COLOR_PRIMARY = [30, 41, 59]; // --primary
+  const COLOR_PRIMARY_DARK = [15, 23, 42]; // --primary-dark
+  const COLOR_TEXT = [15, 23, 42]; // --text
+  const COLOR_TEXT_MUTED = [71, 85, 105]; // --text-muted
+  const COLOR_BORDER = [226, 232, 240]; // --border
 
   function carTitle(car) {
     return `${car.year} ${car.make} ${car.model}`;
