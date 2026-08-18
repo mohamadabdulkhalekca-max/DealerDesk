@@ -1,13 +1,9 @@
 /**
- * Builds a one-page PDF sale receipt and hands it to the device's share
- * sheet (Web Share API) when available, falling back to a direct download.
+ * Builds a one-page itemized PDF sale receipt (cars and/or parts) and
+ * hands it to the device's share sheet (Web Share API) when available,
+ * falling back to a direct download.
  */
 (function () {
-  function carLine(car) {
-    if (!car) return 'Unknown vehicle';
-    return `${car.year} ${car.make} ${car.model}`;
-  }
-
   // Matches the app's CSS palette (styles.css :root), converted to RGB.
   const COLOR_PRIMARY = [30, 41, 59]; // --primary
   const COLOR_PRIMARY_DARK = [15, 23, 42]; // --primary-dark
@@ -16,7 +12,7 @@
   const COLOR_BORDER = [226, 232, 240]; // --border
   const COLOR_BOX_BG = [248, 250, 252]; // --bg
 
-  function buildReceiptDoc(sale, car) {
+  function buildReceiptDoc(sale, cars, parts) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -36,7 +32,7 @@
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
-    doc.text('VEHICLE SALE RECEIPT', marginX, 60);
+    doc.text('SALE RECEIPT', marginX, 60);
 
     const receiptNo = sale.id ? sale.id.slice(0, 8).toUpperCase() : '—';
     doc.setFont('helvetica', 'bold');
@@ -46,60 +42,86 @@
     doc.setFontSize(10);
     doc.text(sale.saleDate || '—', rightEdge, 58, { align: 'right' });
 
-    const colGap = 24;
-    const colWidth = (contentWidth - colGap) / 2;
-    const leftX = marginX;
-    const rightX = marginX + colWidth + colGap;
+    let y = bandHeight + 40;
 
-    let y = bandHeight + 44;
-    const startY = y;
-
-    const sectionHeader = (x, label) => {
+    const sectionHeader = (label) => {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9.5);
       doc.setTextColor(...COLOR_PRIMARY_DARK);
-      doc.text(label.toUpperCase(), x, y);
+      doc.text(label.toUpperCase(), marginX, y);
       y += 18;
     };
 
-    const row = (x, label, value) => {
+    const row = (label, value) => {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9.5);
       doc.setTextColor(...COLOR_TEXT_MUTED);
-      doc.text(label, x, y);
+      doc.text(label, marginX, y);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.setTextColor(...COLOR_TEXT);
-      doc.text(String(value === undefined || value === null || value === '' ? '—' : value), x, y + 15);
-      y += 36;
+      doc.text(String(value === undefined || value === null || value === '' ? '—' : value), marginX + 130, y);
+      y += 20;
     };
 
-    sectionHeader(leftX, 'Vehicle');
-    row(leftX, 'Vehicle', carLine(car));
-    row(leftX, 'VIN', car && car.vin);
-    row(leftX, 'Color', car && car.color);
-    row(leftX, 'Mileage', car && car.mileage ? `${Number(car.mileage).toLocaleString()} mi` : null);
-    const leftEndY = y;
+    sectionHeader('Buyer');
+    row('Name', sale.buyerName);
+    row('Contact', sale.buyerContact);
+    row('Payment Status', sale.paymentStatus === 'paid' ? 'Paid' : 'Pending');
+    y += 10;
 
-    y = startY;
-    sectionHeader(rightX, 'Buyer');
-    row(rightX, 'Name', sale.buyerName);
-    row(rightX, 'Contact', sale.buyerContact);
-    row(rightX, 'Payment Status', sale.paymentStatus === 'paid' ? 'Paid' : 'Pending');
-    const rightEndY = y;
+    sectionHeader('Items');
 
-    y = Math.max(leftEndY, rightEndY) + 4;
+    const colItem = marginX;
+    const colQty = rightEdge - 220;
+    const colPrice = rightEdge - 140;
+    const colTotal = rightEdge;
+    const itemColWidth = colQty - colItem - 10;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...COLOR_TEXT_MUTED);
+    doc.text('ITEM', colItem, y);
+    doc.text('QTY', colQty, y, { align: 'right' });
+    doc.text('UNIT PRICE', colPrice, y, { align: 'right' });
+    doc.text('LINE TOTAL', colTotal, y, { align: 'right' });
+    y += 8;
+    doc.setDrawColor(...COLOR_BORDER);
+    doc.line(marginX, y, rightEdge, y);
+    y += 16;
+
+    const items = sale.items || [];
+    items.forEach((item) => {
+      const label = Helpers.itemLabel(item, cars, parts);
+      const qty = item.quantity || 1;
+      const lineTotal = Number(item.unitPrice || 0) * qty;
+      const labelLines = doc.splitTextToSize(label, itemColWidth);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...COLOR_TEXT);
+      doc.text(labelLines, colItem, y);
+      doc.text(String(qty), colQty, y, { align: 'right' });
+      doc.text(Helpers.formatCurrency(item.unitPrice), colPrice, y, { align: 'right' });
+      doc.text(Helpers.formatCurrency(lineTotal), colTotal, y, { align: 'right' });
+      y += Math.max(16, labelLines.length * 13) + 6;
+    });
+
+    y += 4;
+    doc.setDrawColor(...COLOR_BORDER);
+    doc.line(marginX, y, rightEdge, y);
+    y += 24;
 
     if (sale.notes) {
-      sectionHeader(leftX, 'Notes');
+      sectionHeader('Notes');
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.setTextColor(...COLOR_TEXT);
       const lines = doc.splitTextToSize(sale.notes, contentWidth);
-      doc.text(lines, leftX, y);
+      doc.text(lines, marginX, y);
       y += lines.length * 14 + 20;
     } else {
-      y += 8;
+      y += 4;
     }
 
     // Total box
@@ -110,11 +132,11 @@
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10.5);
     doc.setTextColor(...COLOR_TEXT_MUTED);
-    doc.text('TOTAL SALE PRICE', marginX + 20, y + 26);
+    doc.text('TOTAL', marginX + 20, y + 26);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(24);
     doc.setTextColor(...COLOR_PRIMARY_DARK);
-    doc.text(Helpers.formatCurrency(sale.salePrice), rightEdge - 20, y + 38, { align: 'right' });
+    doc.text(Helpers.formatCurrency(Helpers.saleTotal(sale)), rightEdge - 20, y + 38, { align: 'right' });
 
     y += boxHeight + 34;
 
@@ -130,8 +152,8 @@
     return doc;
   }
 
-  async function shareReceipt(sale, car) {
-    const doc = buildReceiptDoc(sale, car);
+  async function shareReceipt(sale, cars, parts) {
+    const doc = buildReceiptDoc(sale, cars, parts);
     const fileName = `receipt-${(sale.id || 'sale').slice(0, 8)}.pdf`;
     const blob = doc.output('blob');
 
@@ -142,7 +164,7 @@
           await navigator.share({
             files: [file],
             title: 'Sale Receipt',
-            text: `Receipt for ${carLine(car)}`,
+            text: `Receipt for ${sale.buyerName}`,
           });
           return { method: 'share' };
         } catch (err) {

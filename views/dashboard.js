@@ -19,13 +19,20 @@
   async function render(root) {
     root.innerHTML = '<div class="page-loading">Loading…</div>';
 
-    const [cars, sales] = await Promise.all([Storage.getCars(), Storage.getSales()]);
+    const [cars, parts, sales] = await Promise.all([
+      Storage.getCars(),
+      Storage.getParts(),
+      Storage.getSales(),
+    ]);
 
     const inStock = cars.filter((c) => c.status === 'in_stock');
-    const inventoryValue = inStock.reduce(
+    const carValue = inStock.reduce(
       (sum, c) => sum + Number(c.purchasePrice || 0) + Number(c.additionalCosts || 0),
       0
     );
+    const partsInStockUnits = parts.reduce((sum, p) => sum + Number(p.quantity || 0), 0);
+    const partsValue = parts.reduce((sum, p) => sum + Number(p.quantity || 0) * Number(p.costPrice || 0), 0);
+    const inventoryValue = carValue + partsValue;
     const notSold = cars.filter((c) => c.status !== 'sold');
     const agingCars = notSold
       .map((c) => ({ car: c, days: Helpers.daysInStock(c) }))
@@ -50,6 +57,7 @@
     const stats = document.createElement('div');
     stats.className = 'stats-grid';
     stats.appendChild(statCard('Cars in Stock', inStock.length));
+    stats.appendChild(statCard('Parts in Stock (units)', partsInStockUnits));
     stats.appendChild(statCard('Inventory Value', Helpers.formatCurrency(inventoryValue)));
     stats.appendChild(statCard(`Aging (${Helpers.AGING_THRESHOLD_DAYS}+ days)`, agingCars.length));
     wrap.appendChild(stats);
@@ -148,7 +156,7 @@
     const table = document.createElement('table');
     table.className = 'data-table';
     table.innerHTML =
-      '<thead><tr><th>Car</th><th>Buyer</th><th>Sale Price</th><th>Date</th><th>Profit</th></tr></thead>';
+      '<thead><tr><th>Items</th><th>Buyer</th><th>Total</th><th>Date</th><th>Profit</th></tr></thead>';
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     tableWrap.appendChild(table);
@@ -166,7 +174,7 @@
       const periodSales = salesInPeriod(sales, state.periodType, periodValue).sort(
         (a, b) => new Date(b.saleDate) - new Date(a.saleDate)
       );
-      const profit = periodSales.reduce((sum, s) => sum + Helpers.saleProfit(s, cars), 0);
+      const profit = periodSales.reduce((sum, s) => sum + Helpers.saleProfit(s, cars, parts), 0);
 
       periodStats.innerHTML = '';
       periodStats.appendChild(statCard(`Sales — ${periodLabel}`, periodSales.length));
@@ -184,14 +192,13 @@
 
       tbody.innerHTML = '';
       periodSales.forEach((s) => {
-        const car = cars.find((c) => c.id === s.carId);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${car ? Helpers.escapeHtml(`${car.year} ${car.make} ${car.model}`) : 'Unknown car'}</td>
+          <td>${Helpers.escapeHtml(Helpers.saleItemsSummary(s, cars, parts))}</td>
           <td>${Helpers.escapeHtml(s.buyerName)}</td>
-          <td>${Helpers.formatCurrency(s.salePrice)}</td>
+          <td>${Helpers.formatCurrency(Helpers.saleTotal(s))}</td>
           <td>${Helpers.escapeHtml(s.saleDate)}</td>
-          <td>${Helpers.formatCurrency(Helpers.saleProfit(s, cars))}</td>
+          <td>${Helpers.formatCurrency(Helpers.saleProfit(s, cars, parts))}</td>
         `;
         tbody.appendChild(tr);
       });

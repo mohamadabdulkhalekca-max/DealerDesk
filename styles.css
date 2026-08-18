@@ -441,6 +441,22 @@ button.primary.danger-solid:hover {
   color: var(--neutral-text);
 }
 
+.status-part-oil {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.status-part-part {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.status-part-tire,
+.status-part-other {
+  background: var(--neutral-bg);
+  color: var(--neutral-text);
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;
@@ -660,6 +676,107 @@ button.primary.danger-solid:hover {
 .form-field textarea {
   min-height: 52px;
   resize: vertical;
+}
+
+.cart-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cart-field-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cart-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+.cart-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.6rem;
+}
+
+.cart-row-label {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-qty-input {
+  width: 56px;
+  font: inherit;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.cart-price-input {
+  width: 90px;
+  font: inherit;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.cart-remove-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cart-remove-btn:hover {
+  background: #fee2e2;
+}
+
+.cart-add-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cart-add-row select {
+  flex: 1;
+  min-width: 160px;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.cart-total {
+  text-align: right;
+  font-weight: 800;
+  font-size: 1rem;
+  padding-top: 0.2rem;
 }
 
 .photo-field {

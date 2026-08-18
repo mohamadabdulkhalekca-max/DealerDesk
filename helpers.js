@@ -14,11 +14,56 @@
     return div.innerHTML;
   }
 
-  function saleProfit(sale, cars) {
-    const car = cars.find((c) => c.id === sale.carId);
-    if (!car) return 0;
-    const cost = Number(car.purchasePrice || 0) + Number(car.additionalCosts || 0);
-    return Number(sale.salePrice || 0) - cost;
+  // A sale is an order: one or more line items, each either a car
+  // (quantity always 1) or a part (quantity-based). These helpers work
+  // across the mix rather than assuming a single car per sale.
+  function itemUnitCost(item, cars, parts) {
+    if (item.itemType === 'car') {
+      const car = cars.find((c) => c.id === item.carId);
+      if (!car) return 0;
+      return Number(car.purchasePrice || 0) + Number(car.additionalCosts || 0);
+    }
+    const part = parts.find((p) => p.id === item.partId);
+    return part ? Number(part.costPrice || 0) : 0;
+  }
+
+  function itemLabel(item, cars, parts) {
+    if (item.itemType === 'car') {
+      const car = cars.find((c) => c.id === item.carId);
+      return car ? `${car.year} ${car.make} ${car.model}` : 'Unknown car';
+    }
+    const part = parts.find((p) => p.id === item.partId);
+    return part ? part.name : 'Unknown part';
+  }
+
+  function saleTotal(sale) {
+    return (sale.items || []).reduce(
+      (sum, item) => sum + Number(item.unitPrice || 0) * Number(item.quantity || 1),
+      0
+    );
+  }
+
+  function saleProfit(sale, cars, parts = []) {
+    return (sale.items || []).reduce((sum, item) => {
+      const qty = Number(item.quantity || 1);
+      const revenue = Number(item.unitPrice || 0) * qty;
+      const cost = itemUnitCost(item, cars, parts) * qty;
+      return sum + (revenue - cost);
+    }, 0);
+  }
+
+  function saleItemsSummary(sale, cars, parts = []) {
+    const items = sale.items || [];
+    if (items.length === 0) return '—';
+    const labels = items.map((item) => {
+      const label = itemLabel(item, cars, parts);
+      return item.itemType === 'part' && item.quantity > 1 ? `${label} ×${item.quantity}` : label;
+    });
+    return labels.length === 1 ? labels[0] : `${labels[0]} + ${labels.length - 1} more`;
+  }
+
+  function partCategoryLabel(category) {
+    return { oil: 'Oil', tire: 'Tire', part: 'Part', other: 'Other' }[category] || category;
   }
 
   function emptyState(message) {
@@ -108,6 +153,7 @@
     delete: `<svg ${ICON_ATTRS}><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
     sell: `<svg ${ICON_ATTRS}><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>`,
     flyer: `<svg ${ICON_ATTRS}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.7"/><path d="M21 15l-5.5-5.5a1 1 0 0 0-1.4 0L5 19"/></svg>`,
+    box: `<svg ${ICON_ATTRS}><path d="M21 8V21H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
   };
 
   function iconButton(iconName, label, extraClass) {
@@ -165,7 +211,8 @@
   }
 
   window.Helpers = {
-    formatCurrency, escapeHtml, saleProfit, emptyState, statusLabel,
+    formatCurrency, escapeHtml, saleProfit, saleTotal, itemLabel, saleItemsSummary,
+    emptyState, statusLabel, partCategoryLabel,
     todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
     MONTH_NAMES, yearOptionsForDates, iconButton, toCsv, downloadCsv,
     AGING_THRESHOLD_DAYS, daysInStock, compareValues, sortableHeader,

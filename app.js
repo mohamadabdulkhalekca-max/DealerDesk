@@ -77,6 +77,7 @@
       header.classList.remove('hidden');
       setActiveNav(route);
       if (route === 'inventory') await Views.inventory.render(root);
+      else if (route === 'parts') await Views.parts.render(root);
       else if (route === 'sales') await Views.sales.render(root);
       else await Views.dashboard.render(root);
     } catch (err) {

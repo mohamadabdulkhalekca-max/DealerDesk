@@ -44,13 +44,36 @@
     return row;
   }
 
+  function partFromRow(row) {
+    return {
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      sku: row.sku,
+      quantity: row.quantity,
+      costPrice: row.cost_price,
+      askingPrice: row.asking_price,
+      notes: row.notes,
+    };
+  }
+
+  function partToRow(part) {
+    const row = {};
+    if (part.name !== undefined) row.name = part.name;
+    if (part.category !== undefined) row.category = part.category;
+    if (part.sku !== undefined) row.sku = part.sku || null;
+    if (part.quantity !== undefined) row.quantity = part.quantity === '' ? 0 : part.quantity;
+    if (part.costPrice !== undefined) row.cost_price = part.costPrice === '' ? 0 : part.costPrice;
+    if (part.askingPrice !== undefined) row.asking_price = part.askingPrice === '' ? null : part.askingPrice;
+    if (part.notes !== undefined) row.notes = part.notes || null;
+    return row;
+  }
+
   function saleFromRow(row) {
     return {
       id: row.id,
-      carId: row.car_id,
       buyerName: row.buyer_name,
       buyerContact: row.buyer_contact,
-      salePrice: row.sale_price,
       saleDate: row.sale_date,
       paymentStatus: row.payment_status,
       notes: row.notes,
@@ -59,14 +82,35 @@
 
   function saleToRow(sale) {
     const row = {};
-    if (sale.carId !== undefined) row.car_id = sale.carId;
     if (sale.buyerName !== undefined) row.buyer_name = sale.buyerName;
     if (sale.buyerContact !== undefined) row.buyer_contact = sale.buyerContact || null;
-    if (sale.salePrice !== undefined) row.sale_price = sale.salePrice;
     if (sale.saleDate !== undefined) row.sale_date = sale.saleDate || null;
     if (sale.paymentStatus !== undefined) row.payment_status = sale.paymentStatus;
     if (sale.notes !== undefined) row.notes = sale.notes || null;
     return row;
+  }
+
+  function saleItemFromRow(row) {
+    return {
+      id: row.id,
+      saleId: row.sale_id,
+      itemType: row.item_type,
+      carId: row.car_id,
+      partId: row.part_id,
+      quantity: row.quantity,
+      unitPrice: row.unit_price,
+    };
+  }
+
+  function saleItemToRow(item) {
+    return {
+      sale_id: item.saleId,
+      item_type: item.itemType,
+      car_id: item.itemType === 'car' ? item.carId : null,
+      part_id: item.itemType === 'part' ? item.partId : null,
+      quantity: item.itemType === 'car' ? 1 : item.quantity,
+      unit_price: item.unitPrice,
+    };
   }
 
   function friendlyError(error, deleteBlockedMessage) {
@@ -148,41 +192,152 @@
     await db.storage.from('car-photos').remove([path]);
   }
 
-  // --- Sales ---
+  // --- Parts (auto parts / oils / tires — quantity-based, unlike cars) ---
+
+  async function getParts() {
+    const { data, error } = await db.from('parts').select('*').order('created_at', { ascending: false });
+    if (error) throw friendlyError(error);
+    return data.map(partFromRow);
+  }
+
+  async function getPart(id) {
+    const { data, error } = await db.from('parts').select('*').eq('id', id).maybeSingle();
+    if (error) throw friendlyError(error);
+    return data ? partFromRow(data) : null;
+  }
+
+  async function savePart(part) {
+    const row = partToRow(part);
+    if (part.id) {
+      const { data, error } = await db.from('parts').update(row).eq('id', part.id).select().single();
+      if (error) throw friendlyError(error);
+      return partFromRow(data);
+    }
+    const { data, error } = await db.from('parts').insert(row).select().single();
+    if (error) throw friendlyError(error);
+    return partFromRow(data);
+  }
+
+  async function deletePart(id) {
+    const { error } = await db.from('parts').delete().eq('id', id);
+    if (error) {
+      throw friendlyError(error, 'This part has a recorded sale — delete the sale first.');
+    }
+  }
+
+  // --- Sales (a sale is an order: one or more car and/or part line items) ---
+
+  async function attachItems(salesRows) {
+    const saleIds = salesRows.map((r) => r.id);
+    if (saleIds.length === 0) return salesRows.map(saleFromRow).map((s) => ({ ...s, items: [] }));
+    const { data: itemRows, error } = await db.from('sale_items').select('*').in('sale_id', saleIds);
+    if (error) throw friendlyError(error);
+    const itemsBySale = {};
+    itemRows.forEach((row) => {
+      const item = saleItemFromRow(row);
+      (itemsBySale[item.saleId] = itemsBySale[item.saleId] || []).push(item);
+    });
+    return salesRows.map((row) => {
+      const sale = saleFromRow(row);
+      sale.items = itemsBySale[sale.id] || [];
+      return sale;
+    });
+  }
 
   async function getSales() {
     const { data, error } = await db.from('sales').select('*').order('created_at', { ascending: false });
     if (error) throw friendlyError(error);
-    return data.map(saleFromRow);
+    return attachItems(data);
   }
 
   async function getSale(id) {
     const { data, error } = await db.from('sales').select('*').eq('id', id).maybeSingle();
     if (error) throw friendlyError(error);
-    return data ? saleFromRow(data) : null;
+    if (!data) return null;
+    const [sale] = await attachItems([data]);
+    return sale;
+  }
+
+  // Puts a car back to "in_stock" / returns a part's quantity to stock —
+  // used to undo a sale's effect on inventory, both when editing a sale
+  // (revert-then-reapply, simpler and more reliable than diffing line
+  // items) and when deleting one outright.
+  async function releaseSaleItemEffects(items) {
+    for (const item of items) {
+      if (item.itemType === 'car') {
+        await db.from('cars').update({ status: 'in_stock' }).eq('id', item.carId);
+      } else {
+        const { data } = await db.from('parts').select('quantity').eq('id', item.partId).maybeSingle();
+        if (data) {
+          await db.from('parts').update({ quantity: data.quantity + item.quantity }).eq('id', item.partId);
+        }
+      }
+    }
+  }
+
+  async function applySaleItemEffects(items) {
+    for (const item of items) {
+      if (item.itemType === 'car') {
+        await db.from('cars').update({ status: 'sold' }).eq('id', item.carId);
+      } else {
+        const { data } = await db.from('parts').select('quantity').eq('id', item.partId).maybeSingle();
+        if (data) {
+          const newQty = Math.max(0, data.quantity - item.quantity);
+          await db.from('parts').update({ quantity: newQty }).eq('id', item.partId);
+        }
+      }
+    }
   }
 
   async function saveSale(sale) {
+    const items = sale.items || [];
+    if (items.length === 0) throw new Error('A sale needs at least one item.');
+
     const row = saleToRow(sale);
+    let savedHeader;
+
     if (sale.id) {
+      const { data: oldRows, error: oldErr } = await db.from('sale_items').select('*').eq('sale_id', sale.id);
+      if (oldErr) throw friendlyError(oldErr);
+      const oldItems = oldRows.map(saleItemFromRow);
+
       const { data, error } = await db.from('sales').update(row).eq('id', sale.id).select().single();
       if (error) throw friendlyError(error);
-      return saleFromRow(data);
+      savedHeader = saleFromRow(data);
+
+      await releaseSaleItemEffects(oldItems);
+      const { error: delErr } = await db.from('sale_items').delete().eq('sale_id', sale.id);
+      if (delErr) throw friendlyError(delErr);
+    } else {
+      const { data, error } = await db.from('sales').insert(row).select().single();
+      if (error) throw friendlyError(error);
+      savedHeader = saleFromRow(data);
     }
-    const { data, error } = await db.from('sales').insert(row).select().single();
-    if (error) throw friendlyError(error);
-    const saved = saleFromRow(data);
-    await saveCar({ id: saved.carId, status: 'sold' });
-    return saved;
+
+    const itemRows = items.map((item) => saleItemToRow({ ...item, saleId: savedHeader.id }));
+    const { data: insertedItems, error: insertErr } = await db.from('sale_items').insert(itemRows).select();
+    if (insertErr) throw friendlyError(insertErr);
+
+    await applySaleItemEffects(items);
+
+    savedHeader.items = insertedItems.map(saleItemFromRow);
+    return savedHeader;
   }
 
   async function deleteSale(id) {
+    const { data: itemRows, error: itemErr } = await db.from('sale_items').select('*').eq('sale_id', id);
+    if (itemErr) throw friendlyError(itemErr);
+    const items = itemRows.map(saleItemFromRow);
+
     const { error } = await db.from('sales').delete().eq('id', id);
     if (error) throw friendlyError(error);
+
+    await releaseSaleItemEffects(items);
   }
 
   window.Storage = {
     getCars, getCar, saveCar, deleteCar, uploadCarPhoto, deleteCarPhoto,
+    getParts, getPart, savePart, deletePart,
     getSales, getSale, saveSale, deleteSale,
   };
 })();

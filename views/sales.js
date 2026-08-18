@@ -1,10 +1,5 @@
-/** Sales view: sale list with add/edit/delete, linked to inventory cars. */
+/** Sales view: list of orders (each a cart of car/part line items), add/edit/delete. */
 (function () {
-  function carLabel(car) {
-    if (!car) return 'Unknown car';
-    return `${car.year} ${car.make} ${car.model}`;
-  }
-
   function statCard(label, value) {
     const div = document.createElement('div');
     div.className = 'stat-card';
@@ -38,6 +33,7 @@
     root.innerHTML = '<div class="page-loading">Loading…</div>';
 
     let allCars = [];
+    let allParts = [];
     let allSales = [];
 
     const state = {
@@ -65,24 +61,21 @@
     const exportBtn = document.createElement('button');
     exportBtn.textContent = 'Export CSV';
     exportBtn.addEventListener('click', () => {
-      const rows = allSales.map((s) => {
-        const car = allCars.find((c) => c.id === s.carId);
-        return {
-          car: carLabel(car),
-          buyerName: s.buyerName,
-          buyerContact: s.buyerContact,
-          salePrice: s.salePrice,
-          profit: Helpers.saleProfit(s, allCars),
-          saleDate: s.saleDate,
-          paymentStatus: s.paymentStatus,
-          notes: s.notes,
-        };
-      });
+      const rows = allSales.map((s) => ({
+        items: Helpers.saleItemsSummary(s, allCars, allParts),
+        buyerName: s.buyerName,
+        buyerContact: s.buyerContact,
+        total: Helpers.saleTotal(s),
+        profit: Helpers.saleProfit(s, allCars, allParts),
+        saleDate: s.saleDate,
+        paymentStatus: s.paymentStatus,
+        notes: s.notes,
+      }));
       const columns = [
-        { key: 'car', label: 'Car' },
+        { key: 'items', label: 'Items' },
         { key: 'buyerName', label: 'Buyer Name' },
         { key: 'buyerContact', label: 'Buyer Contact' },
-        { key: 'salePrice', label: 'Sale Price' },
+        { key: 'total', label: 'Total' },
         { key: 'profit', label: 'Profit' },
         { key: 'saleDate', label: 'Sale Date' },
         { key: 'paymentStatus', label: 'Payment Status' },
@@ -103,7 +96,7 @@
     toolbar.className = 'toolbar';
     const searchInput = document.createElement('input');
     searchInput.type = 'search';
-    searchInput.placeholder = 'Search buyer or car…';
+    searchInput.placeholder = 'Search buyer, car, or part…';
     searchInput.addEventListener('input', () => {
       state.search = searchInput.value.trim();
       state.page = 1;
@@ -177,9 +170,9 @@
     const thead = document.createElement('thead');
     const headRow = document.createElement('tr');
     const SORT_COLUMNS = [
-      ['car', 'Car'],
+      ['items', 'Items'],
       ['buyerName', 'Buyer'],
-      ['salePrice', 'Sale Price'],
+      ['total', 'Total'],
       ['profit', 'Profit'],
       ['saleDate', 'Date'],
       ['paymentStatus', 'Payment'],
@@ -212,10 +205,10 @@
     wrap.appendChild(pagination);
 
     const SORT_GETTERS = {
-      car: (s) => carLabel(allCars.find((c) => c.id === s.carId)),
+      items: (s) => Helpers.saleItemsSummary(s, allCars, allParts),
       buyerName: (s) => s.buyerName || '',
-      salePrice: (s) => Number(s.salePrice) || 0,
-      profit: (s) => Helpers.saleProfit(s, allCars),
+      total: (s) => Helpers.saleTotal(s),
+      profit: (s) => Helpers.saleProfit(s, allCars, allParts),
       saleDate: (s) => s.saleDate || '',
       paymentStatus: (s) => s.paymentStatus || '',
     };
@@ -226,6 +219,13 @@
       if (state.periodType === 'day') return Helpers.formatDayLabel(state.day);
       if (state.periodType === 'month') return Helpers.formatMonthLabel(state.month);
       return `${state.rangeStart} to ${state.rangeEnd}`;
+    }
+
+    function saleMatchesSearch(sale, q) {
+      const haystack = [sale.buyerName, ...(sale.items || []).map((item) => Helpers.itemLabel(item, allCars, allParts))]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
     }
 
     function applyFilters(sales) {
@@ -241,12 +241,7 @@
             return false;
           }
         }
-        if (state.search) {
-          const car = allCars.find((c) => c.id === s.carId);
-          const q = state.search.toLowerCase();
-          const hay = `${s.buyerName} ${carLabel(car)}`.toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
+        if (state.search && !saleMatchesSearch(s, state.search.toLowerCase())) return false;
         return true;
       });
     }
@@ -311,7 +306,7 @@
       const getter = SORT_GETTERS[state.sort.key];
       filtered.sort((a, b) => Helpers.compareValues(getter(a), getter(b)) * state.sort.dir);
 
-      const profit = filtered.reduce((sum, s) => sum + Helpers.saleProfit(s, allCars), 0);
+      const profit = filtered.reduce((sum, s) => sum + Helpers.saleProfit(s, allCars, allParts), 0);
       const label = periodLabel();
 
       periodStats.innerHTML = '';
@@ -370,13 +365,12 @@
 
       tbody.innerHTML = '';
       pageSales.forEach((s) => {
-        const car = allCars.find((c) => c.id === s.carId);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${Helpers.escapeHtml(carLabel(car))}</td>
+          <td>${Helpers.escapeHtml(Helpers.saleItemsSummary(s, allCars, allParts))}</td>
           <td>${Helpers.escapeHtml(s.buyerName)}</td>
-          <td>${Helpers.formatCurrency(s.salePrice)}</td>
-          <td>${Helpers.formatCurrency(Helpers.saleProfit(s, allCars))}</td>
+          <td>${Helpers.formatCurrency(Helpers.saleTotal(s))}</td>
+          <td>${Helpers.formatCurrency(Helpers.saleProfit(s, allCars, allParts))}</td>
           <td>${Helpers.escapeHtml(s.saleDate)}</td>
           <td><span class="status-badge status-${s.paymentStatus}">${s.paymentStatus === 'paid' ? 'Paid' : 'Pending'}</span></td>
           <td class="row-actions"></td>
@@ -386,7 +380,7 @@
         receiptBtn.addEventListener('click', async () => {
           receiptBtn.disabled = true;
           try {
-            const result = await Receipt.shareReceipt(s, car);
+            const result = await Receipt.shareReceipt(s, allCars, allParts);
             if (result.method === 'download') {
               App.showInfo('Sharing isn’t available on this browser — the receipt PDF was downloaded instead.');
             }
@@ -422,7 +416,11 @@
 
     async function reload() {
       try {
-        [allCars, allSales] = await Promise.all([Storage.getCars(), Storage.getSales()]);
+        [allCars, allParts, allSales] = await Promise.all([
+          Storage.getCars(),
+          Storage.getParts(),
+          Storage.getSales(),
+        ]);
       } catch (err) {
         App.showError(err.message);
         return;
