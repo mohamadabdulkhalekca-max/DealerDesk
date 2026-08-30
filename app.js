@@ -53,10 +53,10 @@
 
   function applyChromeTranslations() {
     brandEl.textContent = I18n.t('brand');
-    nav.querySelector('[data-route="dashboard"]').textContent = I18n.t('nav.dashboard');
-    nav.querySelector('[data-route="inventory"]').textContent = I18n.t('nav.inventory');
-    nav.querySelector('[data-route="parts"]').textContent = I18n.t('nav.parts');
-    nav.querySelector('[data-route="sales"]').textContent = I18n.t('nav.sales');
+    nav.querySelector('[data-route="dashboard"] .nav-label').textContent = I18n.t('nav.dashboard');
+    nav.querySelector('[data-route="inventory"] .nav-label').textContent = I18n.t('nav.inventory');
+    nav.querySelector('[data-route="parts"] .nav-label').textContent = I18n.t('nav.parts');
+    nav.querySelector('[data-route="sales"] .nav-label').textContent = I18n.t('nav.sales');
     lockBtn.textContent = I18n.t('nav.lock');
     langToggleBtn.textContent = I18n.isRtl() ? I18n.t('nav.switchToEnglish') : I18n.t('nav.switchToArabic');
   }

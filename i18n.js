@@ -41,6 +41,7 @@
       'dashboard.profitInPeriod': 'Profit — {period}',
       'dashboard.noSalesInPeriod': 'No sales in this period.',
       'dashboard.allTime': 'All Time',
+      'dashboard.profitTrend': 'Profit Trend — Last 6 Months',
 
       'period.month': 'Month',
       'period.day': 'Day',
@@ -220,6 +221,7 @@
       'dashboard.profitInPeriod': 'الأرباح — {period}',
       'dashboard.noSalesInPeriod': 'لا توجد مبيعات في هذه الفترة.',
       'dashboard.allTime': 'كل الأوقات',
+      'dashboard.profitTrend': 'اتجاه الأرباح — آخر 6 أشهر',
 
       'period.month': 'شهر',
       'period.day': 'يوم',

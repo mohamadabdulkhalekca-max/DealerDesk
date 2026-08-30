@@ -16,6 +16,69 @@
     });
   }
 
+  const TREND_MONTHS = 6;
+
+  // Oldest-to-newest month keys ('YYYY-MM') ending with the current month.
+  function lastMonthKeys(count) {
+    const now = new Date();
+    const keys = [];
+    for (let i = count - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    return keys;
+  }
+
+  function monthShortLabel(monthValue) {
+    const [year, month] = monthValue.split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString(I18n.isRtl() ? 'ar' : undefined, {
+      month: 'short',
+    });
+  }
+
+  function renderProfitTrendChart(canvas, sales, cars, parts) {
+    const months = lastMonthKeys(TREND_MONTHS);
+    const profitByMonth = months.map((m) =>
+      salesInPeriod(sales, 'month', m).reduce((sum, s) => sum + Helpers.saleProfit(s, cars, parts), 0)
+    );
+
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: months.map(monthShortLabel),
+        datasets: [
+          {
+            label: I18n.t('dashboard.profitByPeriod'),
+            data: profitByMonth,
+            backgroundColor: '#1e293b',
+            borderRadius: 4,
+            maxBarThickness: 48,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => Helpers.formatCurrency(ctx.parsed.y),
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (value) => Helpers.formatCurrency(value) },
+            grid: { color: '#e2e8f0' },
+          },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }
+
   async function render(root) {
     root.innerHTML = '<div class="page-loading">Loading…</div>';
 
@@ -63,6 +126,16 @@
       statCard(I18n.t('dashboard.aging', { days: Helpers.AGING_THRESHOLD_DAYS }), agingCars.length)
     );
     wrap.appendChild(stats);
+
+    const chartTitle = document.createElement('h2');
+    chartTitle.textContent = I18n.t('dashboard.profitTrend');
+    wrap.appendChild(chartTitle);
+
+    const chartCard = document.createElement('div');
+    chartCard.className = 'chart-card';
+    const chartCanvas = document.createElement('canvas');
+    chartCard.appendChild(chartCanvas);
+    wrap.appendChild(chartCard);
 
     if (agingCars.length > 0) {
       const agingTitle = document.createElement('h2');
@@ -239,6 +312,7 @@
     });
 
     root.appendChild(wrap);
+    renderProfitTrendChart(chartCanvas, sales, cars, parts);
     refresh();
   }
 
