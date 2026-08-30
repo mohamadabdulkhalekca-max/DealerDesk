@@ -2,6 +2,13 @@
  * Supabase client + auth wrapper. The anon/public key below is safe to
  * expose in client-side code — access to data is enforced by the Row
  * Level Security policies in supabase/schema.sql, not by hiding this key.
+ *
+ * Sign-in only, deliberately — there's no sign-up flow here. Accounts are
+ * created per customer by the operator via Supabase Dashboard →
+ * Authentication → Users → Add user. That's also where public sign-ups
+ * must be disabled (Authentication → Sign In / Providers → Email →
+ * "Allow new users to sign up"), since the anon key alone doesn't stop a
+ * visitor from calling auth.signUp() directly.
  */
 (function () {
   const SUPABASE_URL = 'https://atbkznuvpyhhouyogtnf.supabase.co';
@@ -14,10 +21,6 @@
     return client.auth.signInWithPassword({ email, password });
   }
 
-  function signUp(email, password) {
-    return client.auth.signUp({ email, password });
-  }
-
   function signOut() {
     return client.auth.signOut();
   }
@@ -26,6 +29,6 @@
     return client.auth.getSession();
   }
 
-  window.Auth = { signIn, signUp, signOut, getSession };
+  window.Auth = { signIn, signOut, getSession };
   window.SupabaseClient = client;
 })();

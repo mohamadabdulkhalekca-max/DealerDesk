@@ -21,15 +21,9 @@
       'nav.switchToEnglish': 'English',
 
       'login.signInSubtitle': 'Sign in to continue',
-      'login.signUpSubtitle': 'Create your account',
       'login.email': 'Email',
       'login.password': 'Password',
       'login.signIn': 'Sign In',
-      'login.createAccount': 'Create Account',
-      'login.noAccount': "Don't have an account? Create one",
-      'login.hasAccount': 'Already have an account? Sign in',
-      'login.passwordMinLength': 'Password must be at least 6 characters.',
-      'login.accountCreated': 'Account created — check your email to confirm it, then sign in.',
 
       'dashboard.title': 'Dashboard',
       'dashboard.carsInStock': 'Cars in Stock',
@@ -244,15 +238,9 @@
       'nav.switchToEnglish': 'English',
 
       'login.signInSubtitle': 'سجّل الدخول للمتابعة',
-      'login.signUpSubtitle': 'أنشئ حسابك',
       'login.email': 'البريد الإلكتروني',
       'login.password': 'كلمة المرور',
       'login.signIn': 'تسجيل الدخول',
-      'login.createAccount': 'إنشاء حساب',
-      'login.noAccount': 'ليس لديك حساب؟ أنشئ واحدًا',
-      'login.hasAccount': 'لديك حساب بالفعل؟ سجّل الدخول',
-      'login.passwordMinLength': 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.',
-      'login.accountCreated': 'تم إنشاء الحساب — تحقق من بريدك الإلكتروني لتأكيده، ثم سجّل الدخول.',
 
       'dashboard.title': 'لوحة التحكم',
       'dashboard.carsInStock': 'السيارات المتوفرة',

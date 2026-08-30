@@ -1,8 +1,6 @@
-/** Login view: Supabase email/password sign-in, with a toggle to sign up. */
+/** Login view: Supabase email/password sign-in only — accounts are created by the operator (Supabase Dashboard → Authentication → Users), not by visitors. */
 (function () {
   function render(root, { onUnlock }) {
-    let mode = 'signin'; // or 'signup'
-
     root.innerHTML = '';
 
     const wrap = document.createElement('div');
@@ -17,6 +15,7 @@
 
     const subtitle = document.createElement('p');
     subtitle.className = 'login-subtitle';
+    subtitle.textContent = I18n.t('login.signInSubtitle');
     card.appendChild(subtitle);
 
     const form = document.createElement('form');
@@ -34,69 +33,30 @@
     pwInput.type = 'password';
     pwInput.placeholder = I18n.t('login.password');
     pwInput.required = true;
+    pwInput.autocomplete = 'current-password';
     form.appendChild(pwInput);
 
     const errorMsg = document.createElement('div');
     errorMsg.className = 'form-error hidden';
     form.appendChild(errorMsg);
 
-    const infoMsg = document.createElement('div');
-    infoMsg.className = 'form-info hidden';
-    form.appendChild(infoMsg);
-
     const submitBtn = document.createElement('button');
     submitBtn.type = 'submit';
+    submitBtn.textContent = I18n.t('login.signIn');
     form.appendChild(submitBtn);
-
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.className = 'link-btn';
-    form.appendChild(toggleBtn);
-
-    function updateMode() {
-      subtitle.textContent = I18n.t(mode === 'signin' ? 'login.signInSubtitle' : 'login.signUpSubtitle');
-      submitBtn.textContent = I18n.t(mode === 'signin' ? 'login.signIn' : 'login.createAccount');
-      toggleBtn.textContent = I18n.t(mode === 'signin' ? 'login.noAccount' : 'login.hasAccount');
-      pwInput.autocomplete = mode === 'signin' ? 'current-password' : 'new-password';
-    }
-    updateMode();
-
-    toggleBtn.addEventListener('click', () => {
-      mode = mode === 'signin' ? 'signup' : 'signin';
-      errorMsg.classList.add('hidden');
-      infoMsg.classList.add('hidden');
-      updateMode();
-    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       errorMsg.classList.add('hidden');
-      infoMsg.classList.add('hidden');
       submitBtn.disabled = true;
 
       const email = emailInput.value.trim();
       const password = pwInput.value;
 
       try {
-        if (mode === 'signin') {
-          const { error } = await Auth.signIn(email, password);
-          if (error) throw error;
-          onUnlock();
-        } else {
-          if (password.length < 6) {
-            throw new Error(I18n.t('login.passwordMinLength'));
-          }
-          const { data, error } = await Auth.signUp(email, password);
-          if (error) throw error;
-          if (data.session) {
-            onUnlock();
-          } else {
-            infoMsg.textContent = I18n.t('login.accountCreated');
-            infoMsg.classList.remove('hidden');
-            mode = 'signin';
-            updateMode();
-          }
-        }
+        const { error } = await Auth.signIn(email, password);
+        if (error) throw error;
+        onUnlock();
       } catch (err) {
         errorMsg.textContent = err.message;
         errorMsg.classList.remove('hidden');
