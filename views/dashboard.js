@@ -79,13 +79,51 @@
     });
   }
 
+  function renderInventoryValueChart(canvas, carValue, partsValue) {
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: [I18n.t('dashboard.carsValue'), I18n.t('dashboard.partsValue')],
+        datasets: [
+          {
+            data: [carValue, partsValue],
+            backgroundColor: ['#1e293b', '#64748b'],
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ${Helpers.formatCurrency(ctx.parsed)}`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function expensesInPeriod(expenses, periodType, periodValue) {
+    return expenses.filter((e) => {
+      if (!e.expenseDate) return false;
+      return periodType === 'month'
+        ? e.expenseDate.slice(0, 7) === periodValue
+        : e.expenseDate === periodValue;
+    });
+  }
+
   async function render(root) {
     root.innerHTML = '<div class="page-loading">Loading…</div>';
 
-    const [cars, parts, sales] = await Promise.all([
+    const [cars, parts, sales, expenses] = await Promise.all([
       Storage.getCars(),
       Storage.getParts(),
       Storage.getSales(),
+      Storage.getExpenses(),
     ]);
 
     const inStock = cars.filter((c) => c.status === 'in_stock');
@@ -101,6 +139,9 @@
       .map((c) => ({ car: c, days: Helpers.daysInStock(c) }))
       .filter(({ days }) => days !== null && days >= Helpers.AGING_THRESHOLD_DAYS)
       .sort((a, b) => b.days - a.days);
+    const lowStockParts = parts
+      .filter(Helpers.isLowStock)
+      .sort((a, b) => Number(a.quantity) - Number(b.quantity));
 
     const state = {
       periodType: 'month',
@@ -125,17 +166,63 @@
     stats.appendChild(
       statCard(I18n.t('dashboard.aging', { days: Helpers.AGING_THRESHOLD_DAYS }), agingCars.length)
     );
+    stats.appendChild(statCard(I18n.t('dashboard.lowStock'), lowStockParts.length));
     wrap.appendChild(stats);
 
+    const chartRow = document.createElement('div');
+    chartRow.className = 'chart-row';
+
+    const trendCol = document.createElement('div');
+    trendCol.className = 'chart-col chart-col-wide';
     const chartTitle = document.createElement('h2');
     chartTitle.textContent = I18n.t('dashboard.profitTrend');
-    wrap.appendChild(chartTitle);
-
+    trendCol.appendChild(chartTitle);
     const chartCard = document.createElement('div');
     chartCard.className = 'chart-card';
     const chartCanvas = document.createElement('canvas');
     chartCard.appendChild(chartCanvas);
-    wrap.appendChild(chartCard);
+    trendCol.appendChild(chartCard);
+    chartRow.appendChild(trendCol);
+
+    const breakdownCol = document.createElement('div');
+    breakdownCol.className = 'chart-col';
+    const breakdownTitle = document.createElement('h2');
+    breakdownTitle.textContent = I18n.t('dashboard.inventoryBreakdown');
+    breakdownCol.appendChild(breakdownTitle);
+    const breakdownCard = document.createElement('div');
+    breakdownCard.className = 'chart-card';
+    const breakdownCanvas = document.createElement('canvas');
+    breakdownCard.appendChild(breakdownCanvas);
+    breakdownCol.appendChild(breakdownCard);
+    chartRow.appendChild(breakdownCol);
+
+    wrap.appendChild(chartRow);
+
+    if (lowStockParts.length > 0) {
+      const lowStockTitle = document.createElement('h2');
+      lowStockTitle.textContent = I18n.t('dashboard.lowStockParts');
+      wrap.appendChild(lowStockTitle);
+
+      const lowStockWrap = document.createElement('div');
+      lowStockWrap.className = 'table-wrap';
+      const lowStockTable = document.createElement('table');
+      lowStockTable.className = 'data-table';
+      lowStockTable.innerHTML = `<thead><tr><th>${I18n.t('table.name')}</th><th>${I18n.t('table.category')}</th><th>${I18n.t('table.quantity')}</th></tr></thead>`;
+      const lowStockBody = document.createElement('tbody');
+      lowStockParts.forEach((p) => {
+        const tr = document.createElement('tr');
+        const outOfStock = Number(p.quantity) <= 0;
+        tr.innerHTML = `
+          <td>${Helpers.escapeHtml(p.name)}</td>
+          <td><span class="status-badge status-part-${p.category}">${Helpers.partCategoryLabel(p.category)}</span></td>
+          <td>${outOfStock ? `<span class="status-badge status-sold">${I18n.t('parts.outOfStock')}</span>` : p.quantity}</td>
+        `;
+        lowStockBody.appendChild(tr);
+      });
+      lowStockTable.appendChild(lowStockBody);
+      lowStockWrap.appendChild(lowStockTable);
+      wrap.appendChild(lowStockWrap);
+    }
 
     if (agingCars.length > 0) {
       const agingTitle = document.createElement('h2');
@@ -163,9 +250,15 @@
       wrap.appendChild(agingTableWrap);
     }
 
+    const profitHeader = document.createElement('div');
+    profitHeader.className = 'page-header section-header';
     const profitTitle = document.createElement('h2');
     profitTitle.textContent = I18n.t('dashboard.profitByPeriod');
-    wrap.appendChild(profitTitle);
+    profitHeader.appendChild(profitTitle);
+    const exportReportBtn = document.createElement('button');
+    exportReportBtn.textContent = I18n.t('dashboard.exportReport');
+    profitHeader.appendChild(exportReportBtn);
+    wrap.appendChild(profitHeader);
 
     const picker = document.createElement('div');
     picker.className = 'period-picker';
@@ -238,6 +331,8 @@
     const emptyWrap = document.createElement('div');
     wrap.appendChild(emptyWrap);
 
+    let currentPeriod = null;
+
     function refresh() {
       const periodValue = state.periodType === 'month' ? state.month : state.day;
       const periodLabel =
@@ -247,13 +342,20 @@
       const periodSales = salesInPeriod(sales, state.periodType, periodValue).sort(
         (a, b) => new Date(b.saleDate) - new Date(a.saleDate)
       );
+      const periodExpenses = expensesInPeriod(expenses, state.periodType, periodValue);
       const profit = periodSales.reduce((sum, s) => sum + Helpers.saleProfit(s, cars, parts), 0);
+      const expenseTotal = periodExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const netProfit = profit - expenseTotal;
+
+      currentPeriod = { periodLabel, periodSales, periodExpenses };
 
       periodStats.innerHTML = '';
       periodStats.appendChild(statCard(I18n.t('dashboard.salesInPeriod', { period: periodLabel }), periodSales.length));
       periodStats.appendChild(
         statCard(I18n.t('dashboard.profitInPeriod', { period: periodLabel }), Helpers.formatCurrency(profit))
       );
+      periodStats.appendChild(statCard(I18n.t('dashboard.expensesInPeriod'), Helpers.formatCurrency(expenseTotal)));
+      periodStats.appendChild(statCard(I18n.t('dashboard.netProfitInPeriod'), Helpers.formatCurrency(netProfit)));
 
       salesTitle.textContent = I18n.t('dashboard.salesInPeriod', { period: periodLabel });
 
@@ -304,6 +406,25 @@
     monthSelect.addEventListener('change', onMonthPickerChange);
     yearSelect.addEventListener('change', onMonthPickerChange);
 
+    exportReportBtn.addEventListener('click', async () => {
+      if (!currentPeriod) return;
+      exportReportBtn.disabled = true;
+      try {
+        const result = await Report.shareReport(
+          currentPeriod.periodLabel,
+          currentPeriod.periodSales,
+          cars,
+          parts,
+          currentPeriod.periodExpenses
+        );
+        if (result.method === 'download') App.showInfo(I18n.t('dashboard.reportDownloaded'));
+      } catch (err) {
+        App.showError(err.message);
+      } finally {
+        exportReportBtn.disabled = false;
+      }
+    });
+
     dayInput.addEventListener('change', () => {
       if (dayInput.value) {
         state.day = dayInput.value;
@@ -313,6 +434,7 @@
 
     root.appendChild(wrap);
     renderProfitTrendChart(chartCanvas, sales, cars, parts);
+    renderInventoryValueChart(breakdownCanvas, carValue, partsValue);
     refresh();
   }
 

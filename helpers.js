@@ -67,6 +67,16 @@
     return I18n.t(`category.${category}`);
   }
 
+  function expenseCategoryLabel(category) {
+    return I18n.t(`expenseCategory.${category}`);
+  }
+
+  const LOW_STOCK_THRESHOLD_UNITS = 3;
+
+  function isLowStock(part) {
+    return Number(part.quantity) <= LOW_STOCK_THRESHOLD_UNITS;
+  }
+
   function emptyState(message) {
     const div = document.createElement('div');
     div.className = 'empty-state';
@@ -216,9 +226,10 @@
 
   window.Helpers = {
     formatCurrency, escapeHtml, saleProfit, saleTotal, itemLabel, saleItemsSummary,
-    emptyState, statusLabel, partCategoryLabel,
+    emptyState, statusLabel, partCategoryLabel, expenseCategoryLabel,
     todayLocal, currentMonthLocal, formatMonthLabel, formatDayLabel,
     monthNames, yearOptionsForDates, iconButton, toCsv, downloadCsv,
     AGING_THRESHOLD_DAYS, daysInStock, compareValues, sortableHeader,
+    LOW_STOCK_THRESHOLD_UNITS, isLowStock,
   };
 })();

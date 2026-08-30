@@ -224,8 +224,13 @@ html[dir="rtl"] .app-sidebar {
   gap: 0.6rem;
 }
 
-.page-header h1 {
+.page-header h1,
+.page-header h2 {
   margin: 0;
+}
+
+.page-header.section-header {
+  margin-top: 2rem;
 }
 
 /* Buttons */
@@ -302,7 +307,22 @@ button.primary.danger-solid:hover {
   font-weight: 600;
 }
 
-/* Trend chart (dashboard) */
+/* Trend + breakdown charts (dashboard) */
+.chart-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.chart-col {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.chart-col-wide {
+  flex: 2 1 420px;
+}
+
 .chart-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -678,6 +698,8 @@ button.primary.danger-solid:hover {
 .dialog-form > .form-error,
 .dialog-form > .form-field-wide,
 .dialog-form > .photo-field,
+.dialog-form > .table-wrap,
+.dialog-form > .confirm-message,
 .dialog-form > .dialog-actions {
   grid-column: 1 / -1;
 }

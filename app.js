@@ -57,6 +57,8 @@
     nav.querySelector('[data-route="inventory"] .nav-label').textContent = I18n.t('nav.inventory');
     nav.querySelector('[data-route="parts"] .nav-label').textContent = I18n.t('nav.parts');
     nav.querySelector('[data-route="sales"] .nav-label').textContent = I18n.t('nav.sales');
+    nav.querySelector('[data-route="buyers"] .nav-label').textContent = I18n.t('nav.buyers');
+    nav.querySelector('[data-route="expenses"] .nav-label').textContent = I18n.t('nav.expenses');
     lockBtn.textContent = I18n.t('nav.lock');
     langToggleBtn.textContent = I18n.isRtl() ? I18n.t('nav.switchToEnglish') : I18n.t('nav.switchToArabic');
   }
@@ -92,6 +94,8 @@
       if (route === 'inventory') await Views.inventory.render(root);
       else if (route === 'parts') await Views.parts.render(root);
       else if (route === 'sales') await Views.sales.render(root);
+      else if (route === 'buyers') await Views.buyers.render(root);
+      else if (route === 'expenses') await Views.expenses.render(root);
       else await Views.dashboard.render(root);
     } catch (err) {
       showError(err.message);

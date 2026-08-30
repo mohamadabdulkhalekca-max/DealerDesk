@@ -121,6 +121,27 @@
     };
   }
 
+  function expenseFromRow(row) {
+    return {
+      id: row.id,
+      category: row.category,
+      description: row.description,
+      amount: row.amount,
+      expenseDate: row.expense_date,
+      notes: row.notes,
+    };
+  }
+
+  function expenseToRow(expense) {
+    const row = {};
+    if (expense.category !== undefined) row.category = expense.category;
+    if (expense.description !== undefined) row.description = expense.description || null;
+    if (expense.amount !== undefined) row.amount = expense.amount === '' ? 0 : expense.amount;
+    if (expense.expenseDate !== undefined) row.expense_date = expense.expenseDate || null;
+    if (expense.notes !== undefined) row.notes = expense.notes || null;
+    return row;
+  }
+
   function friendlyError(error, deleteBlockedMessage) {
     if (deleteBlockedMessage && error.code === '23503') {
       return new Error(deleteBlockedMessage);
@@ -343,9 +364,35 @@
     await releaseSaleItemEffects(items);
   }
 
+  // --- Expenses (recurring overhead: rent, ads, wages, etc.) ---
+
+  async function getExpenses() {
+    const { data, error } = await db.from('expenses').select('*').order('expense_date', { ascending: false });
+    if (error) throw friendlyError(error);
+    return data.map(expenseFromRow);
+  }
+
+  async function saveExpense(expense) {
+    const row = expenseToRow(expense);
+    if (expense.id) {
+      const { data, error } = await db.from('expenses').update(row).eq('id', expense.id).select().single();
+      if (error) throw friendlyError(error);
+      return expenseFromRow(data);
+    }
+    const { data, error } = await db.from('expenses').insert(row).select().single();
+    if (error) throw friendlyError(error);
+    return expenseFromRow(data);
+  }
+
+  async function deleteExpense(id) {
+    const { error } = await db.from('expenses').delete().eq('id', id);
+    if (error) throw friendlyError(error);
+  }
+
   window.Storage = {
     getCars, getCar, saveCar, deleteCar, uploadCarPhoto, deleteCarPhoto,
     getParts, getPart, savePart, deletePart,
     getSales, getSale, saveSale, deleteSale,
+    getExpenses, saveExpense, deleteExpense,
   };
 })();
