@@ -1,4 +1,4 @@
--- Car Trader Manager — recurring/overhead expense tracking (rent, ads,
+-- Dealer Desk — recurring/overhead expense tracking (rent, ads,
 -- wages, utilities, etc.) separate from per-car additional_costs.
 -- Run this once in the Supabase SQL Editor. Safe to re-run.
 

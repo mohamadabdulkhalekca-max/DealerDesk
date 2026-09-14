@@ -9,7 +9,7 @@
 
   const translations = {
     en: {
-      brand: 'Car Trader Manager',
+      brand: 'Dealer Desk',
       'nav.dashboard': 'Dashboard',
       'nav.inventory': 'Inventory',
       'nav.parts': 'Parts',
@@ -226,7 +226,7 @@
       'validation.fieldRequired': '{field} is required.',
     },
     ar: {
-      brand: 'مدير تجارة السيارات',
+      brand: 'Dealer Desk',
       'nav.dashboard': 'لوحة التحكم',
       'nav.inventory': 'المخزون',
       'nav.parts': 'القطع',

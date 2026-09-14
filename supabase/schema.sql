@@ -1,4 +1,4 @@
--- Car Trader Manager — Supabase schema
+-- Dealer Desk — Supabase schema
 -- Run this once in the Supabase SQL Editor (Project → SQL Editor → New query).
 
 create extension if not exists pgcrypto;

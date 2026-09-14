@@ -1,4 +1,4 @@
--- Car Trader Manager — add car photo support (multiple photos per car)
+-- Dealer Desk — add car photo support (multiple photos per car)
 -- Run this once in the Supabase SQL Editor (Project → SQL Editor → New query).
 --
 -- Safe to run even if you already applied an earlier version of this file

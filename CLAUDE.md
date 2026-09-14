@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Car Trader Manager — a single-user web app for a car trader to track vehicle inventory and sales, backed by Supabase (Postgres + Auth + Storage). Plain HTML/CSS/JS, no build tools, no framework, no npm/package.json.
+Dealer Desk — a single-user web app for a car trader to track vehicle inventory and sales, backed by Supabase (Postgres + Auth + Storage). Plain HTML/CSS/JS, no build tools, no framework, no npm/package.json. Sold to showrooms as customer-managed accounts — sign-up is disabled; the operator creates each customer's login directly in Supabase (see auth.js).
 
 ## Running it
 

@@ -1,4 +1,4 @@
--- Car Trader Manager — add parts/oils/tires inventory + multi-item sales
+-- Dealer Desk — add parts/oils/tires inventory + multi-item sales
 -- Run this once in the Supabase SQL Editor.
 --
 -- Safe to re-run. Does NOT drop or modify existing columns on `sales`

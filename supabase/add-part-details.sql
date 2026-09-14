@@ -1,4 +1,4 @@
--- Car Trader Manager — category-specific part details
+-- Dealer Desk — category-specific part details
 -- Run this once in the Supabase SQL Editor.
 --
 -- part_type/compatible_vehicle apply to category='part' (e.g. bumper,

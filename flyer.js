@@ -51,7 +51,7 @@
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('Car Trader Manager', marginX, 32);
+    doc.text('Dealer Desk', marginX, 32);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9.5);
     doc.text('VEHICLE FOR SALE', marginX, 48);
